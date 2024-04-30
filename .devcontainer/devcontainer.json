@@ -1,0 +1,75 @@
+{
+    "name": "ROS 2 Workspace humble-ros-base",
+    "remoteUser": "ros",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "USERNAME": "ros",
+            "GID": "1000",
+            "UID": "1000"
+        }
+    },
+    "workspaceFolder": "/home/ros/ros2_ws",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/home/ros/ros2_ws/,type=bind",
+    "mounts": [
+        "type=bind,source=${localEnv:HOME}/.ssh,target=/home/ros/.ssh,readonly",
+    ],
+
+    "runArgs": [
+        "--memory=8g", // Cap the amount of RAM the container is permitted to use
+        "--cap-add=SYS_PTRACE", // This will allow you to use a ptrace-based debugger like C++, Go, and Rust.
+        "--security-opt=seccomp:unconfined",
+        "--security-opt=apparmor:unconfined",
+        "--volume=/tmp/.X11-unix:/tmp/.X11-unix", // Allow X session between container and host
+        "--volume=${localEnv:HOME}/.Xauthority:/home/ros/.Xauthority:rw", // Allow X session forwarding over SSH tunnel
+        // "--gpus=all", // Attach all nvidia GPUs. Note that if this is enabled without a GPU present, the container may not run.
+        "--device=/dev/dri", // Attach a specific device to the container (in this case, the iGPU)
+        "--privileged",
+        "--net=host"
+    ],
+
+    "containerEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}",
+        "DEV_WORKSPACE": "${containerWorkspaceFolder}",
+        "GZ_SIM_RESOURCE_PATH": "${containerWorkspaceFolder}/install/share",
+        "IGN_GAZEBO_RESOURCE_PATH": "${containerWorkspaceFolder}/install/share/simulation/worlds:${containerWorkspaceFolder}/install/share/simulation/models",
+        "GZ_VERSION": "fortress",
+        "ROS_DOMAIN_ID": "42"
+        },
+
+    "customizations": {
+        // Configure properties specific to VS Code.
+        "vscode": {
+            // Extensions to make available to VSCode inside the container
+            "extensions": [
+                "ms-python.python",
+                "charliermarsh.ruff",
+                "ms-vscode.cpptools-extension-pack",
+                "ms-iot.vscode-ros",
+                "smilerobotics.urdf",
+                "redhat.vscode-xml",
+                "tamasfe.even-better-toml",
+                "timonwong.shellcheck",
+                "yzhang.markdown-all-in-one",
+            ],
+            // Set *default* container specific settings.json values on container create.
+            "settings": {
+                "terminal.integrated.profiles.linux": {
+                    "bash": {
+                        "path": "bash",
+                        "icon": "terminal-bash"
+                    }
+                },
+                "terminal.integrated.defaultProfile.linux": "bash",
+
+                "files.associations": {
+                    "*.rviz":  "yaml",
+                    "*.srdf":  "xml",
+                    "*.urdf":  "xml",
+                    "*.xacro": "xml"
+                }
+            }
+        }
+    }
+  
+}
