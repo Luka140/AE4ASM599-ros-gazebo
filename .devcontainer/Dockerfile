@@ -13,7 +13,6 @@
 ###########################################
 
 ARG ROS_DISTRO=humble
-ARG PREFIX=
 
 FROM osrf/ros:${ROS_DISTRO}-desktop AS ros_user_setup
 
@@ -33,7 +32,7 @@ RUN groupadd --gid $ROS_USER_GID $ROS_USER \
 
 USER $ROS_USER
 
-##############################################################################
+###########################################
 
 FROM ros_user_setup AS dev
 
@@ -79,10 +78,11 @@ RUN sudo pip3 install --no-cache --upgrade numpy
 
 RUN rosdep update
 
-###################################################################
+###########################################
 
 FROM dev as simulation
 
+# Install gazebo and corresponding ros packages.
 RUN sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null \
     && sudo apt-get update \
@@ -98,4 +98,4 @@ RUN sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrin
 
 # Setup entrypoint
 ENTRYPOINT ["/ros_entrypoint.sh"]
-CMD ["bash"]
+CMD ["bin/bash"]

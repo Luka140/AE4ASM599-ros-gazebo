@@ -11,12 +11,18 @@
     },
     "workspaceFolder": "/home/ros/ros2_ws",
     "workspaceMount": "source=${localWorkspaceFolder},target=/home/ros/ros2_ws/,type=bind",
+    "features": {
+        // Install desired packages through apt.
+        "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+            "packages": "nano,python3-venv,wget,btop"
+        }
+    },    
     "mounts": [
-        "type=bind,source=${localEnv:HOME}/.ssh,target=/home/ros/.ssh,readonly",
+        "type=bind,source=${localEnv:HOME}/.ssh,target=/home/ros/.ssh,readonly", // Allow git over ssh by mounting ~/.ssh directory containing rsa keys.
     ],
 
     "runArgs": [
-        "--memory=8g", // Cap the amount of RAM the container is permitted to use
+        "--memory=8g", // Cap the amount of RAM the container is permitted to use.
         "--cap-add=SYS_PTRACE", // This will allow you to use a ptrace-based debugger like C++, Go, and Rust.
         "--security-opt=seccomp:unconfined",
         "--security-opt=apparmor:unconfined",
