@@ -1,7 +1,6 @@
 build/*
 log/*
 install/*
-.gitignore
 src/py_pubsub/*
 src/tutorial_interfaces/*
 src/template_workspace.yaml
