@@ -2,13 +2,12 @@ import numpy as np
 import rclpy 
 import rclpy.node as node
 from sensor_msgs.msg import Image, PointCloud2, CameraInfo, PointField
-from geometry_msgs.msg import Pose, Twist
+# from geometry_msgs.msg import Pose, Twist
 from std_msgs.msg import Header
 from interfaces.srv import Reconstruct
 from cv_bridge import CvBridge
 import cv2 as cv
 import matplotlib.pyplot as plt
-import struct
 
 
 class Reconstructor(node.Node):
@@ -58,11 +57,12 @@ class Reconstructor(node.Node):
 
     def reconstruct_view(self, request, response):
         """
-        Z-error grows quadratically with distance, maybe cap the maximum distance
+        TODO: Z-error grows quadratically with distance, maybe cap the maximum distance
 
         Steps:
         1. Obtain disparity map
         2. Compute Z from disparity map
+        3. Compute X, Y from Z and internal matrix
         """
         time = self.get_clock().now().to_msg()
 
@@ -94,33 +94,40 @@ class Reconstructor(node.Node):
         depth = fx * cam_spacing / disparity_map
         # scaling_factor = 1
         # translation = np.zeros((3,1))
-        point_cloud_data = np.empty(np.prod(self.img_l.shape[:2])*3, dtype=np.float32)
+        # point_cloud_data = np.empty(np.prod(self.img_l.shape[:2])*3, dtype=np.float32)
         # world_coords = np.zeros((*self.img_l.shape[:2], 3))
-        k = 0
-        for j in range(self.img_l.shape[0]):
-            for i in range(self.img_l.shape[1]):
-                depth_world = depth[j,i]
-                # x_img, y_img = (i-cx) / fx, (i-cy) / fy
-                xy = int_mat_inv @ np.array([[i],[j],[1]]) 
-                XYZ = xy * depth_world
-                # world_coords[j,i,:] = XYZ.flatten()
-                point_cloud_data[k:k + 3] = XYZ.T
-                k += 3
+
+        # TODO NEED TO SCALE BY SENSOR WIDHT .....
+        img_xy = np.indices((self.img_l.shape[0],self.img_l.shape[1])).reshape((2,-1)).T - np.array([self.img_l.shape[0]/2, self.img_l.shape[1]/2]) # convert to img coordinates  with origin in the center
+        batched_imgxy1 = np.hstack((img_xy, np.ones((self.img_l.shape[0]*self.img_l.shape[1],1)))) # Add ones in the z dimension
+        batched_imgxyz = np.einsum("ij, i->ij", batched_imgxy1, depth.flatten()) # multiply each [x,y,1] with depth
+        XYZ = np.einsum("ij, ...j->...j", int_mat_inv, batched_imgxyz) # matrix multiplication with inv intrinsic matrix to get real world coordinates
+
+        point_cloud_data = XYZ.flatten()
+        # k = 0
+        # for j in range(self.img_l.shape[0]):
+        #     for i in range(self.img_l.shape[1]):
+        #         depth_world = depth[j,i]
+        #         # x_img, y_img = (i-cx) / fx, (i-cy) / fy
+        #         xy = int_mat_inv @ np.array([[i],[j],[1]]) 
+        #         XYZ = xy * depth_world
+        #         # world_coords[j,i,:] = XYZ.flatten()
+        #         point_cloud_data[k:k + 3] = XYZ.T
+        #         k += 3
 
         return point_cloud_data
     
     def create_pointcloud_msg(self, data, time):
-        
         pointcloud = PointCloud2()
         pointcloud.header = Header(stamp=time, frame_id="camera_frame")
+
         pointcloud.height = self.img_l.shape[0]
         pointcloud.width = self.img_l.shape[1]
-        fields = [PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1), 
-                  PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
-                  PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1)]
+        bytes_per_point = 4
+        fields = [PointField(name=direction, offset=i * bytes_per_point, datatype=PointField.FLOAT32, count=1) for i, direction in enumerate(['x','y','z'])]
         pointcloud.fields = fields
         # Float occupies 4 bytes. Each point then carries 16 bytes.
-        pointcloud.point_step = len(fields) * 4 
+        pointcloud.point_step = len(fields) * bytes_per_point
         total_num_of_points = pointcloud.height * pointcloud.width
         pointcloud.row_step = pointcloud.point_step * total_num_of_points
         pointcloud.is_dense = True
@@ -147,28 +154,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
-
-
-# pointcloud_msg = PointCloud2()
-# pointcloud_msg.header = Header()
-# pointcloud_msg.header.frame_id = "frame"
-
-# # Define the point fields (attributes)        
-# fields =[PointField('x', 0, PointField.FLOAT32, 1),
-#         PointField('y', 4, PointField.FLOAT32, 1),
-#         PointField('z', 8, PointField.FLOAT32, 1),
-#         PointField('intensity', 12, PointField.FLOAT32,1),
-#         ]
-
-# pointcloud_msg.fields = fields
-
-# pointcloud_msg.height = height
-# pointcloud_msg.width = width
-
-# # Float occupies 4 bytes. Each point then carries 16 bytes.
-# pointcloud_msg.point_step = len(fields) * 4 
-
-# total_num_of_points = pointcloud_msg.height * pointcloud_msg.width
-# pointcloud_msg.row_step = pointcloud_msg.point_step * total_num_of_points
-# pointcloud_msg.is_dense = True
