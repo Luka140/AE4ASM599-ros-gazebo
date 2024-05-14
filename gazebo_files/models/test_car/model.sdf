@@ -75,7 +75,7 @@
                 </sensor>
 
                 <frame name="camera_frame" attached_to='chassis'>
-                    <pose>2 0 1 0 0 0</pose>
+                    <pose>2 0 1 -1.5707 0 -1.5707</pose>
                 </frame>
 
                 <sensor name="left_camera" type="camera">
@@ -93,7 +93,7 @@
                         </clip>
                     </camera>
                     <always_on>1</always_on>
-                    <update_rate>30</update_rate>
+                    <update_rate>10</update_rate>
                     <visualize>true</visualize>
                     <topic>camera_l</topic>
                 </sensor>
@@ -113,7 +113,7 @@
                         </clip>
                     </camera>
                     <always_on>1</always_on>
-                    <update_rate>30</update_rate>
+                    <update_rate>10</update_rate>
                     <visualize>true</visualize>
                     <topic>camera_r</topic>
                 </sensor>

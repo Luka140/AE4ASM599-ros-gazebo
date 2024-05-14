@@ -11,11 +11,15 @@
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
-
+  <build_depend>glob</build_depend>
   <exec_depend>interfaces</exec_depend>
+
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>cv2</exec_depend>
+  <exec_depend>matplotlib</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>
