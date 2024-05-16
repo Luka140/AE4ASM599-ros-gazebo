@@ -83,11 +83,13 @@ class Reconstructor(node.Node):
         
         =============================================================================================================================================================="""
         # pc_data = self.find_real_world_coords_it(disparity, intrinsic_mat, cam_spacing)
-        pc_data = self.find_real_world_coords_bmm(disparity, intrinsic_mat, cam_spacing)
-        # pc_data = self.find_real_world_coords_ocv(disparity, intrinsic_mat, cam_spacing)
+        # pc_data = self.find_real_world_coords_bmm(disparity, intrinsic_mat, cam_spacing)
+        pc_data = self.find_real_world_coords_ocv(disparity, intrinsic_mat, cam_spacing)
 
 
-        response.reconstruction = self.create_pointcloud_msg(pc_data, time)
+        reconstruction = create_pointcloud_msg(pc_data, time, self.img_l.shape)
+        self.pub.publish(reconstruction)
+        response.reconstruction = reconstruction
         return response
     
     def find_disparity_map(self):
@@ -158,38 +160,37 @@ class Reconstructor(node.Node):
         # Flatten to a 1D array to make a pointcloud out of it 
         point_cloud_data = XYZ.reshape(-1, 3).flatten()
         assert (XYZ[0,0,:] == point_cloud_data[:3]).all(), f"{XYZ[0,0,:]}, {point_cloud_data[:3]} are not the same, the matrix is not flattened correctly"
-
+        self.get_logger().info(f"XYZ first entires: {point_cloud_data[:6]}")
         return point_cloud_data
 
 
-    def create_pointcloud_msg(self, data, time):
-        """
-        Creates a PointCloud2 message from the given data.
-        inputs:
-            data: a 1D numpy array containing the point cloud data. The points are ordered as [x1, y1, z1, x2, y2, z2,...].
-            time: the time stamp from the moment the service was called.
+def create_pointcloud_msg(data, time, img_shape):
+    """
+    Creates a PointCloud2 message from the given data.
+    inputs:
+        data: a 1D numpy array containing the point cloud data. The points are ordered as [x1, y1, z1, x2, y2, z2,...].
+        time: the time stamp from the moment the service was called.
 
-        For now this publishes the point cloud so RVIZ can visualize it. as well as returning it.
-        Would like to change this so that it just returns the point cloud as a service response, but I didn't find a way to visualize the point cloud in RViz without publishing it as  a publisher
-        """
+    For now this publishes the point cloud so RVIZ can visualize it. as well as returning it.
+    Would like to change this so that it just returns the point cloud as a service response, but I didn't find a way to visualize the point cloud in RViz without publishing it as  a publisher
+    """
 
-        pointcloud = PointCloud2()
-        pointcloud.header = Header(stamp=time, frame_id="camera_frame")
+    pointcloud = PointCloud2()
+    pointcloud.header = Header(stamp=time, frame_id="camera_frame")
 
-        pointcloud.height = self.img_l.shape[0]
-        pointcloud.width = self.img_l.shape[1]
-        bytes_per_point = 4
-        fields = [PointField(name=direction, offset=i * bytes_per_point, datatype=PointField.FLOAT32, count=1) for i, direction in enumerate(['x','y','z'])]
-        pointcloud.fields = fields
-        # Float occupies 4 bytes. Each point then carries 16 bytes.
-        pointcloud.point_step = len(fields) * bytes_per_point
-        total_num_of_points = pointcloud.height * pointcloud.width
-        pointcloud.row_step = pointcloud.point_step * total_num_of_points
-        pointcloud.is_dense = True
-        pointcloud.is_bigendian = False
-        pointcloud.data = data.astype(np.float32).tobytes()
-        self.pub.publish(pointcloud)
-        return pointcloud
+    pointcloud.height, pointcloud.width = img_shape[:2]
+    bytes_per_point = 4
+    fields = [PointField(name=direction, offset=i * bytes_per_point, datatype=PointField.FLOAT32, count=1) for i, direction in enumerate(['x','y','z'])]
+    pointcloud.fields = fields
+    # Float occupies 4 bytes. Each point then carries 16 bytes.
+    pointcloud.point_step = len(fields) * bytes_per_point
+    total_num_of_points = pointcloud.height * pointcloud.width
+    pointcloud.row_step = pointcloud.point_step * total_num_of_points
+    pointcloud.is_dense = True
+    pointcloud.is_bigendian = False
+    pointcloud.data = data.astype(np.float32).tobytes() # This seems to take quite some time 
+    return pointcloud
+
 
 def main(args=None):
     rclpy.init(args=args)

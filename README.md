@@ -34,3 +34,34 @@ ros2 topic pub --once waypoint geometry_msgs/msg/Pose "{position: {x: 10, y: 0.0
 
 
 
+## 3D Reconstruction
+The environment_reconstruction package contains code that takes in two images from a stereo camera, and reconstructs the 3D environment as a pointcloud. 
+
+To use it, open the simulation using
+```
+export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:$HOME/ros2_ws/gazebo_files/
+ign gazebo worlds/tugbot_depot.sdf
+```
+
+In a new file open RViz2:
+```
+source /opt/ros/humble/setup.bash
+rviz2 
+```
+In this window go to 'file' -> 'open config' and open '3d_reconstruction_test.rviz'
+
+In another window, start up the reconstruction node using
+```
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch environment_reconstruction launch_3d_reconstruction.launch.py
+```
+
+In a new window a request can be made to reconstruct the environment. Make sure that the gazebo simulation is actually running at this point, and not paused.
+```
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 service call /reconstruct_3d_view interfaces/srv/Reconstruct "{camera_spacing: 1}"
+```
+
+The pointcloud and images should show up in the RViz2 window. 

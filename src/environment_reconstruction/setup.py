@@ -23,7 +23,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'stereo_reconstruction = environment_reconstruction.stereo_reconstruction:main'
+            'stereo_reconstruction = environment_reconstruction.stereo_reconstruction:main',
+            'total_reconstruction = environment_reconstruction.pointcloud_aggregation:main'
         ],
     },
 )

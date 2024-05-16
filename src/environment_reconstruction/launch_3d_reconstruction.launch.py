@@ -3,6 +3,7 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
+
 def generate_launch_description():
     ld = LaunchDescription()
     bridge = Node(package='ros_gz_bridge', 
@@ -17,6 +18,12 @@ def generate_launch_description():
         executable="stereo_reconstruction"
     )
 
+    aggregator = Node(
+        package="environment_reconstruction",
+        executable="total_reconstruction"
+    )
+
     ld.add_action(bridge)
     ld.add_action(reconstructor)
+    ld.add_action(aggregator)
     return ld
