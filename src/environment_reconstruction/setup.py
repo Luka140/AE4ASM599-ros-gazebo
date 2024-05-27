@@ -24,7 +24,9 @@ setup(
     entry_points={
         'console_scripts': [
             'stereo_reconstruction = environment_reconstruction.stereo_reconstruction:main',
-            'total_reconstruction = environment_reconstruction.pointcloud_aggregation:main'
+            'total_reconstruction = environment_reconstruction.pointcloud_aggregation:main',
+            'positioning = environment_reconstruction.positioning:main',
+            'keyboard_capture = environment_reconstruction.keyboard_capture:main'
         ],
     },
 )

@@ -20,6 +20,9 @@
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>cv2</exec_depend>
   <exec_depend>matplotlib</exec_depend>
+  <exec_depend>ros2_numpy</exec_depend>
+  <exec_depend>open3d</exec_depend>
+
 
   <export>
     <build_type>ament_python</build_type>

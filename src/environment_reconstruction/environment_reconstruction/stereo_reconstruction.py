@@ -7,13 +7,16 @@ from interfaces.srv import Reconstruct
 from cv_bridge import CvBridge
 import cv2 as cv
 import matplotlib.pyplot as plt
+import open3d as o3d
 
 
 class Reconstructor(node.Node):
     def __init__(self):
         super().__init__('reconstructor')
+        self.get_logger().info("Reconstructor node created")
         self.img_l, self.img_r, self.cam_info_l, self.cam_info_r = None, None, None, None
         self.cv_bridge = CvBridge()
+        self.depth_lim = 20
         self.cam_sub_l = self.create_subscription(Image,
                                                 '/camera_l',
                                                 self.update_img_l,
@@ -35,16 +38,18 @@ class Reconstructor(node.Node):
         # TODO This pub shouldnt be here, temp 
         self.pub = self.create_publisher(PointCloud2, 
                                        'reconstruction', 10)
-        
+                
         """
         TODO:
         This is kinda inefficient... Update to make the camera only take pics on trigger
         """
 
     def update_img_l(self, img):
+        self.image_time = self.get_clock().now().to_msg()
         self.img_l = self.cv_bridge.imgmsg_to_cv2(img, 'rgb8')
 
     def update_img_r(self, img):
+        self.image_time = self.get_clock().now().to_msg()
         self.img_r = self.cv_bridge.imgmsg_to_cv2(img, 'rgb8')
 
     def update_camera_info(self, cam_info):
@@ -63,9 +68,18 @@ class Reconstructor(node.Node):
         2. Compute Z from disparity map
         3. Compute X, Y from Z and internal camera matrices
         """
+        if self.img_l is None or self.img_r is None:
+            self.get_logger().info("No image received yet")
+            response.reconstruction = PointCloud2()
+            return response
+        
+        current_time = self.get_clock().now().to_msg()
+        self.get_logger().info(f"{current_time.nanosec, self.image_time.nanosec}")
+        if float(current_time.nanosec) > float(self.image_time.nanosec) + 1e8: # if image outdated by 0.1sec
+            self.get_logger().info("Image time outdated - time set to current with the assumption gazebo is paused")
+            self.image_time = current_time - rclpy.time.Time(nanoseconds=1e8)
 
-        time = self.get_clock().now().to_msg()
-
+        
         cam_spacing = request.camera_spacing
         disparity = self.find_disparity_map()
         
@@ -83,11 +97,11 @@ class Reconstructor(node.Node):
         
         =============================================================================================================================================================="""
         # pc_data = self.find_real_world_coords_it(disparity, intrinsic_mat, cam_spacing)
-        # pc_data = self.find_real_world_coords_bmm(disparity, intrinsic_mat, cam_spacing)
-        pc_data = self.find_real_world_coords_ocv(disparity, intrinsic_mat, cam_spacing)
+        pc_data = self.find_real_world_coords_bmm(disparity, intrinsic_mat, cam_spacing)
+        # pc_data = self.find_real_world_coords_ocv(disparity, intrinsic_mat, cam_spacing)
 
 
-        reconstruction = create_pointcloud_msg(pc_data, time, self.img_l.shape)
+        reconstruction = create_pointcloud_msg(pc_data, self.image_time, self.img_l.shape)
         self.pub.publish(reconstruction)
         response.reconstruction = reconstruction
         return response
@@ -129,21 +143,27 @@ class Reconstructor(node.Node):
             Should be the same math as version 1 but using batched matrix multiplication instead of iterating over every pixel
         """
         fx = intrinsic_mat[0,0]
-        cx, cy = intrinsic_mat[0,2], intrinsic_mat[1,2]
+        # self.get_logger().info(f"Intrinsic camera matrix: {intrinsic_mat}")
+        # cx, cy = intrinsic_mat[0,2], intrinsic_mat[1,2]
         int_mat_inv = np.linalg.inv(intrinsic_mat)
         depth = fx * cam_spacing / disparity_map
-
-        img_xy = np.indices((self.img_l.shape[1], self.img_l.shape[0])).reshape((2,-1)).T #- np.array([cx, cy])  # convert to img coordinates  with origin in the center
+        depth[abs(depth) > self.depth_lim] = np.nan
+        img_xy = np.indices((self.img_l.shape[1], self.img_l.shape[0])).reshape((2,-1)).T 
         batched_imgxy1 = np.hstack((img_xy, np.ones((self.img_l.shape[0]*self.img_l.shape[1],1)))) # Add ones in the z dimension
         
         batched_imgxyz = np.einsum("ij, ik->ij", batched_imgxy1, depth.T.reshape(-1,1)) # multiply each [x,y,1] with depth
 
         XYZ = np.einsum("bi, ij -> bj", batched_imgxyz, int_mat_inv.T) # Obtain XYZ coordinates from intrinsic camera matrix 
 
-        # Flatten to a 1D array to make a pointcloud out of it 
-        point_cloud_data = XYZ.flatten()
-        assert (XYZ[0,:] == point_cloud_data[:3]).all(), f"{XYZ[0,:]}, {point_cloud_data[:3]} are not the same, the matrix is not flattened correctly"
+        # Rotation to transform from typical camera coordinate system to world coordinate convetions
+        # Camera has Z as depth and X to the right, with ROS convention being X forward and Z up
+        # Maybe this can be added to the extrinsic camera matrix to bypass these extra steps
+        pcl_o3d = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(XYZ))
+        rot_mat = pcl_o3d.get_rotation_matrix_from_xyz((-np.pi/2, np.pi/2, 0))
+        pcl_o3d.rotate(R=rot_mat, center=np.array([[0],[0],[0]]))
 
+        # Flatten to a 1D array to make a pointcloud out of it 
+        point_cloud_data = np.asarray(pcl_o3d.points).flatten()
         return point_cloud_data
 
 
@@ -160,7 +180,7 @@ class Reconstructor(node.Node):
         # Flatten to a 1D array to make a pointcloud out of it 
         point_cloud_data = XYZ.reshape(-1, 3).flatten()
         assert (XYZ[0,0,:] == point_cloud_data[:3]).all(), f"{XYZ[0,0,:]}, {point_cloud_data[:3]} are not the same, the matrix is not flattened correctly"
-        self.get_logger().info(f"XYZ first entires: {point_cloud_data[:6]}")
+        self.get_logbyger().info(f"XYZ first entires: {point_cloud_data[:6]}")
         return point_cloud_data
 
 
@@ -175,8 +195,10 @@ def create_pointcloud_msg(data, time, img_shape):
     Would like to change this so that it just returns the point cloud as a service response, but I didn't find a way to visualize the point cloud in RViz without publishing it as  a publisher
     """
 
+    cam_reference_frame = "Test_car/chassis/left_camera"
+
     pointcloud = PointCloud2()
-    pointcloud.header = Header(stamp=time, frame_id="camera_frame")
+    pointcloud.header = Header(stamp=time, frame_id=cam_reference_frame)
 
     pointcloud.height, pointcloud.width = img_shape[:2]
     bytes_per_point = 4
@@ -186,7 +208,7 @@ def create_pointcloud_msg(data, time, img_shape):
     pointcloud.point_step = len(fields) * bytes_per_point
     total_num_of_points = pointcloud.height * pointcloud.width
     pointcloud.row_step = pointcloud.point_step * total_num_of_points
-    pointcloud.is_dense = True
+    pointcloud.is_dense = False
     pointcloud.is_bigendian = False
     pointcloud.data = data.astype(np.float32).tobytes() # This seems to take quite some time 
     return pointcloud
