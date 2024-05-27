@@ -57,7 +57,12 @@ source install/setup.bash
 ros2 launch environment_reconstruction launch_3d_reconstruction.launch.py
 ```
 
-In a new window a request can be made to reconstruct the environment. Make sure that the gazebo simulation is actually running at this point, and not paused.
+The vehicle can be driven around using the arrow keys. Pressing "S" stops the vehicle. For this to work, the 'key publisher' in Gazebo needs to be enabled. 
+
+To request a 3D reconstruction either press:
+    "C" or press "Enter"
+
+In a new console window a manual request can also be made to reconstruct the environment. Make sure that the gazebo simulation is actually running at this point, and not paused.
 ```
 source /opt/ros/humble/setup.bash
 source install/setup.bash

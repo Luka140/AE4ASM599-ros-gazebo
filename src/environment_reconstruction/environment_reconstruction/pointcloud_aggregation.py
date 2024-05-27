@@ -1,143 +1,103 @@
 import rclpy 
 import rclpy.node as node
 from sensor_msgs.msg import PointCloud2
-from geometry_msgs.msg import Transform
 import numpy as np
 from tf2_ros import TransformListener
 from tf2_ros.buffer import Buffer
 import open3d as o3d
-import ros2_numpy
-import copy
 
 
 class PointcloudAggregator(node.Node):
     
     def __init__(self):
         super().__init__('pointcloud_aggregator')
-        self.get_logger().info("Pointcloud aggregator node created")
+        """
+        This node listens for pointclouds to be published to the 'reconstruction' topic, transforms them to 
+        world coordinates and adds them to an aggregated pointcloud which is published to the 'total_pointcloud' topic
+        """
         
+        # This is where the total pointcloud is stored
+        # Initially empty
         self.pointcloud = None
+
+        # Listens to the reconstruction node. These pointclouds are with respect to the camera reference frame.
+        # To add them to the total pointcloud, they first have to be transformed to the world coordinate frame. 
+        # Once this publishes a new reconstruction, self.reconstruction_callback() is called to perform the 
+        # coordinate transformations and add it to the total pointcloud.
         self.reconstruction_sub = self.create_subscription(PointCloud2,
                                                            'reconstruction', 
                                                            self.reconstruction_callback, 
                                                            10)
         
+        # The topic to which the aggregated pointcloud is published
         self.pointcloud_pub = self.create_publisher(PointCloud2, 'total_pointcloud', 10)
 
+        # Track coordinate transformations
         self.tf_buffer = Buffer(cache_time=rclpy.time.Time(seconds=10))
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-    def reconstruction_callback(self, msg):
+        self.get_logger().info("Pointcloud aggregator node created")
+
+
+    def reconstruction_callback(self, msg):     
         self.get_logger().info("Received a pointcloud message - adding to the total pointcloud")
         time = msg.header.stamp
         cam_frame = msg.header.frame_id
-        # cam_frame = 'Test_car/chassis'
         target_frame = "world_demo"
-        # target_frame = "Test_car/chassis"
 
-        # tf_trans = self.tf_buffer.lookup_transform(cam_frame, target_frame, time)
+        # Lookup the transformation at the time the pointcloud (picture) was created
         tf_trans = self.tf_buffer.lookup_transform(target_frame, cam_frame, time)
-        # self.get_logger().info(f"{tf_trans}")
-        # self.get_logger().info(f"tf transform dir {tf_trans.transform.__doc__}")
-        # transform = ros2_numpy.numpify(tf_trans.transform) # THIS FUNCTION DOESNT WORK CORRECTLY 
+
+        # Create a transformation matrix from the transformation message obtained from tf_trans
         transform = np.eye(4)
         rot = tf_trans.transform.rotation
         trans = tf_trans.transform.translation
-        # transform[:3,:3] = o3d.geometry.get_rotation_matrix_from_quaternion(np.array([[rot.x],
-        #                                                                               [rot.y],
-        #                                                                               [rot.z],
-        #                                                                               [rot.w]]))
-
-        # transform[:3,:3] = o3d.geometry.get_rotation_matrix_from_quaternion(np.array([[rot.w],
-        #                                                                               [rot.x],
-        #                                                                               [rot.y],
-        #                                                                               [rot.z]]))
-
-        # roll, pitch, yaw = self.euler_from_quaternion(rot.x, rot.y, rot.z, rot.w)
-        # transform[:3,:3] = o3d.geometry.get_rotation_matrix_from_xyz(np.array([roll, pitch, yaw]))
+        # If this is altered - be careful of the order of the quaternion (w,x,y,z) vs (x,y,z,w)
+        # Some packages use one, other use the other and they often don't specify which is used.  
         transform[:3,:3] = _get_mat_from_quat(np.array([rot.w, rot.x, rot.y, rot.z]))
         transform[:3,3] = [trans.x, trans.y, trans.z]
-
-
-        # msg_transformed = self.tf_listener.transformPointCloud('world', msg)
-        # msg_transformed = do_transform_cloud(msg, transform)
-        # msg_transformed = self.tf_buffer.transform(object_stamped=msg, 
-                                                #    target_frame='world')
         
-        self.get_logger().info(f"\n\n{transform}")
-        # coord_frame = o3d.geometry.TriangleMesh.create_coordinate_frame()
-        # o3d.visualization.draw_geometries([coord_frame, copy.deepcopy(coord_frame).transform(transform)])
-
-
-        
+        # Loads the pointcloud message into Open3D format to allows for transformation
         pcl_o3d = o3d.geometry.PointCloud()
         loaded_array = np.frombuffer(msg.data, dtype=np.float32).reshape(-1, 3)
         pcl_o3d.points = o3d.utility.Vector3dVector(loaded_array)
         
-        # self.get_logger().info(f"nr of nans before: {np.isnan(np.asarray(pcl_o3d.points)).sum()}")
+        # Remove all NaN points (points for which the depth could not be computed) and transform them
         pcl_o3d.remove_non_finite_points().transform(transform)
-        # self.get_logger().info(f"nr of nans after: {np.isnan(np.asarray(pcl_o3d.points)).sum()}")
-
-        # This transform is a bandaid to so RVIZ shows the result as I think it should be
-        # This transform should not be necessary, the previous one should take care of everything
-        # transform_mat2 = np.zeros((4, 4))
-        # transform_mat2[:3,:3] = o3d.geometry.get_rotation_matrix_from_xyz(np.array([0, 0, np.pi]))
-        # transform_mat2[3,3] = 1
-        # The line below seems to indicate that the height of the transform previously is the wrong way around
-        # It may have to do with gazebo automatically inserting the height of the camera into the extrinsic matrix?
-        # transform_mat2[3,2] = -2*transform[3,2]
-        # pcl_o3d.transform(transform_mat2)
-
-        msg_transformed = msg # TODO This may cause aliasing issues, not sure yet
+        
+        # Create the new message 
+        msg_transformed = msg 
         msg_transformed.data = np.asarray(pcl_o3d.points, dtype=np.float32).flatten().tobytes()
         msg_transformed.row_step = len(msg_transformed.data)
         msg_transformed.width = msg_transformed.row_step // msg.point_step
-        
+
+        # Now that points have been removed, it is no longer a structured pointcloud so the height of the 
+        # Original image is no longer relevant. Height is 1, widht is the total nr of points.        
         msg_transformed.height = 1
         msg_transformed.header.frame_id = target_frame
+
         if self.pointcloud is None:
+            # If this is the first pointcloud simply reassign
             self.pointcloud = msg_transformed
         else:
+            # Else add them to the previously aggregated cloud 
             self.pointcloud.header.stamp = msg.header.stamp
             self.pointcloud.width += msg_transformed.width
             total_num_of_points = self.pointcloud.height * self.pointcloud.width
             self.pointcloud.row_step = self.pointcloud.point_step * total_num_of_points
             self.pointcloud.data.extend(msg_transformed.data)
-            # self.get_logger().info(f"new pointcloud data shape {self.pointcloud.data.shape}")
-            # self.pointcloud.data = new_data
 
-        # self.get_logger().info(f"total pointcloud data shape {len(self.pointcloud.data)} {loaded_array.shape} {pcl_o3d.points}")
         self.pointcloud_pub.publish(self.pointcloud)
         self.get_logger().info("Added to the pointcloud")
 
 
-    # def euler_from_quaternion(self, x, y, z, w):
-    #     """
-    #     Convert a quaternion into euler angles (roll, pitch, yaw)
-    #     roll is rotation around x in radians (counterclockwise)
-    #     pitch is rotation around y in radians (counterclockwise)
-    #     yaw is rotation around z in radians (counterclockwise)
-    #     """
-    #     t0 = +2.0 * (w * x + y * z)
-    #     t1 = +1.0 - 2.0 * (x * x + y * y)
-    #     roll_x = np.arctan2(t0, t1)
-    
-    #     t2 = +2.0 * (w * y - z * x)
-    #     t2 = +1.0 if t2 > +1.0 else t2
-    #     t2 = -1.0 if t2 < -1.0 else t2
-    #     pitch_y = np.arcsin(t2)
-    
-    #     t3 = +2.0 * (w * z + x * y)
-    #     t4 = +1.0 - 2.0 * (y * y + z * z)
-    #     yaw_z = np.arctan2(t3, t4)
-    
-    #     return roll_x, pitch_y, yaw_z # in radians
-    
-
 def _get_mat_from_quat(quaternion: np.ndarray) -> np.ndarray:
     """
-    TAKEN STRAIGHT FROM: https://github.com/ros2/geometry2/blob/rolling/tf2_geometry_msgs/src/tf2_geometry_msgs/tf2_geometry_msgs.py
-    
+    TAKEN STRAIGHT FROM THE ROS2 REPO: 
+    https://github.com/ros2/geometry2/blob/rolling/tf2_geometry_msgs/src/tf2_geometry_msgs/tf2_geometry_msgs.py
+    simply importing it led to some issues because it is not in the setup file. 
+
+
     Convert a quaternion to a rotation matrix.
 
     This method is based on quat2mat from https://github.com

@@ -9,8 +9,12 @@ class KeyboardToCapture(node.Node):
     
     def __init__(self):
         super().__init__('keyboard_to_capture')
-        self.get_logger().info("capture node created")
+        """
+        This node tracks the keyboard outputs from the 'keyboard/keypress' topic.
+        If either "C" or "Enter" is pressed, the does a service call to 'reconstruct_3d_view' to create a reconstruction
+        If "S" is pressed, it publishes to the 'cmd_vel' topic to stop the vehicle. 
         
+        """
         self.reconstruction_sub = self.create_subscription(Int32,
                                                            'keyboard/keypress', 
                                                            self.capture_environment, 
@@ -18,20 +22,21 @@ class KeyboardToCapture(node.Node):
         
         self.capture_cli = self.create_client(Reconstruct, 'reconstruct_3d_view')
         self.cmd_pub = self.create_publisher(Twist, 'cmd_vel', 10)
-                                                 
-        
+        self.get_logger().info("capture node created")
+
+                                                         
     def capture_environment(self, msg):
         if msg.data == 67 or msg.data == 1677220:
-            # Press C or Enter to request a reconstruction
+            # Press "C" or "Enter" to request a reconstruction
             req = Reconstruct.Request()
             req.camera_spacing = 1.
             self.capture_cli.call_async(req)
         
         if msg.data == 83:
-            # Stop movement of vehicle
+            # Stop movement of vehicle by pressing "s"
             self.cmd_pub.publish(Twist())
 
-
+    
 
 def main(args=None):
     rclpy.init(args=args)
