@@ -77,7 +77,11 @@ class Reconstructor(node.Node):
         self.get_logger().info(f"{current_time.nanosec, self.image_time.nanosec}")
         if float(current_time.nanosec) > float(self.image_time.nanosec) + 1e8: # if image outdated by 0.1sec
             self.get_logger().info("Image time outdated - time set to current with the assumption gazebo is paused")
-            self.image_time = current_time - rclpy.time.Time(nanoseconds=1e8)
+            
+            curr_time = rclpy.time.Time().from_msg(current_time)
+            self.image_time = (
+                curr_time - rclpy.time.Time(seconds=0, nanoseconds=1e8, clock_type=curr_time.clock_type)
+                ).to_msg()
 
         
         cam_spacing = request.camera_spacing

@@ -114,3 +114,4 @@ venv.bak/
 .mypy_cache/
 /experiment_folder/
 src/environment_reconstruction/environment_reconstruction/__pycache__/stereo_reconstruction.cpython-310.pyc
+src/environment_reconstruction/environment_reconstruction/__pycache__/stereo_reconstruction.cpython-310.pyc

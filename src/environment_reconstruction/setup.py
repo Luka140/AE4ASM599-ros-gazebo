@@ -26,7 +26,10 @@ setup(
             'stereo_reconstruction = environment_reconstruction.stereo_reconstruction:main',
             'total_reconstruction = environment_reconstruction.pointcloud_aggregation:main',
             'positioning = environment_reconstruction.positioning:main',
-            'keyboard_capture = environment_reconstruction.keyboard_capture:main'
+            'keyboard_capture = environment_reconstruction.keyboard_capture:main',
+            'cluster = environment_reconstruction.clustering:main',
+            'cluster_client = environment_reconstruction.cluster_client:main',
+            'utils = environment_reconstruction.utils:main'
         ],
     },
 )

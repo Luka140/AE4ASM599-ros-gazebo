@@ -31,6 +31,16 @@ def generate_launch_description():
         executable="positioning"
     )
 
+    cluster = Node(
+        package="environment_reconstruction",
+        executable="cluster"
+    )
+
+    cluster_client = Node(
+        package="environment_reconstruction",
+        executable="cluster_client"
+    )
+
     keyboard_capture = Node(
         package="environment_reconstruction",
         executable="keyboard_capture"
@@ -50,5 +60,6 @@ def generate_launch_description():
     ld.add_action(aggregator)
     ld.add_action(locator)
     ld.add_action(keyboard_capture)
-
+    ld.add_action(cluster)
+    ld.add_action(cluster_client)
     return ld

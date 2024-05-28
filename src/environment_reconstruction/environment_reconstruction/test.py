@@ -1,21 +1,36 @@
-from sympy.utilities.iterables import multiset_permutations
 import numpy as np
+
+
 """
 
 This file is just me messing around
 
 """
 
-# # img = np.zeros((720,1280))
-# a = np.hstack((np.indices((720,1280)).reshape((2,-1)).T, np.ones((720*1280,1))))
-# print(a.shape)
-# b = np.ones((3,3))
-
-# c = np.einsum("ij, ...j->...j", b, a)
-# print(c.shape)  
+# class TestNode(node.Node):
+#     def __init__(self):
+#         super().__init__('test_node')
+#         self.get_logger().info("Test node created")
+#         self.a = 9
 
 
+# rclpy.init()
+# n = TestNode()
 
-a  = np.indices((720,1280)).reshape((2,-1)).T
-print(a)
+# t = n.get_clock().now().to_msg()
 
+# print(rclpy.time.Time().from_msg(t))
+
+# print(rclpy.time.Time().from_msg(t).clock_type)
+
+# curr_t = rclpy.time.Time().from_msg(t)
+# print(
+#     (curr_t - rclpy.time.Time(seconds=0, nanoseconds=5,
+#                                                      clock_type=curr_t.clock_type))
+#     )
+
+# a = o3d.geometry.PointCloud()
+# b = o3d.geometry.PointCloud()
+
+# c = a + b
+# print(a, b, c)

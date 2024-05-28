@@ -1,6 +1,6 @@
 import rclpy 
 import rclpy.node as node
-from sensor_msgs.msg import PointCloud2
+from sensor_msgs.msg import PointCloud2, PointField
 import numpy as np
 from tf2_ros import TransformListener
 from tf2_ros.buffer import Buffer
@@ -16,9 +16,12 @@ class PointcloudAggregator(node.Node):
         world coordinates and adds them to an aggregated pointcloud which is published to the 'total_pointcloud' topic
         """
         
+        self.global_frame_id = 'world_demo'
+        self.cluster = False
+
         # This is where the total pointcloud is stored
-        # Initially empty
-        self.pointcloud = None
+        # Initially 0 points
+        self.pointcloud = o3d.geometry.PointCloud()
 
         # Listens to the reconstruction node. These pointclouds are with respect to the camera reference frame.
         # To add them to the total pointcloud, they first have to be transformed to the world coordinate frame. 
@@ -33,7 +36,7 @@ class PointcloudAggregator(node.Node):
         self.pointcloud_pub = self.create_publisher(PointCloud2, 'total_pointcloud', 10)
 
         # Track coordinate transformations
-        self.tf_buffer = Buffer(cache_time=rclpy.time.Time(seconds=10))
+        self.tf_buffer = Buffer(cache_time=rclpy.time.Time(seconds=20))
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.get_logger().info("Pointcloud aggregator node created")
@@ -43,10 +46,10 @@ class PointcloudAggregator(node.Node):
         self.get_logger().info("Received a pointcloud message - adding to the total pointcloud")
         time = msg.header.stamp
         cam_frame = msg.header.frame_id
-        target_frame = "world_demo"
+        target_frame = self.global_frame_id
 
         # Lookup the transformation at the time the pointcloud (picture) was created
-        tf_trans = self.tf_buffer.lookup_transform(target_frame, cam_frame, time)
+        tf_trans = self.tf_buffer.lookup_transform(target_frame, cam_frame, time, timeout=rclpy.duration.Duration(seconds=3))
 
         # Create a transformation matrix from the transformation message obtained from tf_trans
         transform = np.eye(4)
@@ -65,30 +68,48 @@ class PointcloudAggregator(node.Node):
         # Remove all NaN points (points for which the depth could not be computed) and transform them
         pcl_o3d.remove_non_finite_points().transform(transform)
         
-        # Create the new message 
-        msg_transformed = msg 
-        msg_transformed.data = np.asarray(pcl_o3d.points, dtype=np.float32).flatten().tobytes()
-        msg_transformed.row_step = len(msg_transformed.data)
-        msg_transformed.width = msg_transformed.row_step // msg.point_step
+        # Add to the total pointcloud 
+        self.pointcloud = self.pointcloud + pcl_o3d 
 
-        # Now that points have been removed, it is no longer a structured pointcloud so the height of the 
-        # Original image is no longer relevant. Height is 1, widht is the total nr of points.        
-        msg_transformed.height = 1
-        msg_transformed.header.frame_id = target_frame
+        labels = None
+        if self.cluster:
+            labels = self.pointcloud.cluster_dbscan(eps=0.05, min_points=10)
 
-        if self.pointcloud is None:
-            # If this is the first pointcloud simply reassign
-            self.pointcloud = msg_transformed
-        else:
-            # Else add them to the previously aggregated cloud 
-            self.pointcloud.header.stamp = msg.header.stamp
-            self.pointcloud.width += msg_transformed.width
-            total_num_of_points = self.pointcloud.height * self.pointcloud.width
-            self.pointcloud.row_step = self.pointcloud.point_step * total_num_of_points
-            self.pointcloud.data.extend(msg_transformed.data)
-
-        self.pointcloud_pub.publish(self.pointcloud)
+        pcl2_msg = self.create_pcl_msg(labels)
+        self.pointcloud_pub.publish(pcl2_msg)
         self.get_logger().info("Added to the pointcloud")
+
+
+    def create_pcl_msg(self, labels):
+        pointcloud = PointCloud2()
+        pointcloud.header.frame_id = self.global_frame_id
+
+        datapoints = np.asarray(self.pointcloud.points, dtype=np.float32)
+
+        if self.cluster and labels is not None:
+            dims = ['x', 'y', 'z', 'c']
+            lbls = np.expand_dims(np.asarray(labels, dtype=np.int8), 1)
+            datapoints = np.hstack((datapoints, lbls))
+        else:
+            dims = ['x', 'y', 'z']
+
+        bytes_per_point = 4
+        fields = [PointField(name=direction, offset=i * bytes_per_point, datatype=PointField.FLOAT32, count=1) for i, direction in enumerate(dims)]
+        pointcloud.fields = fields
+        pointcloud.point_step = len(fields) * bytes_per_point
+        total_points = datapoints.shape[0]
+        pointcloud.is_dense = True
+        pointcloud.height = 1
+        pointcloud.width = total_points
+
+        self.is_bigendian = False
+        pointcloud.data = datapoints.flatten().tobytes()
+
+        return pointcloud
+
+
+
+
 
 
 def _get_mat_from_quat(quaternion: np.ndarray) -> np.ndarray:

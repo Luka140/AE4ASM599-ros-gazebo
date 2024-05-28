@@ -1,9 +1,6 @@
 import rclpy
 import rclpy.node as node
-from geometry_msgs.msg import TransformStamped, Transform, Pose, Vector3 
-from std_msgs.msg import Header
 from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
-from nav_msgs.msg import Odometry
 from tf2_msgs.msg import TFMessage
 
 
@@ -25,7 +22,6 @@ class Locator(node.Node):
         self.get_logger().info("Locator node created")
 
 
-    
     def broadcast_transform(self, tf_msg):
         for tf in tf_msg.transforms:
             # The transforms published by gazebo are in a different time than the clock, 

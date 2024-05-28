@@ -26,8 +26,12 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+set(srv_files
+  "srv/Reconstruct.srv"  
+  "srv/Cluster.srv"
+)
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "srv/Reconstruct.srv"
+  ${srv_files}
   DEPENDENCIES sensor_msgs # Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
 )
 
