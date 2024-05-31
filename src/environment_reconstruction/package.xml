@@ -3,7 +3,7 @@
 <package format="3">
   <name>environment_reconstruction</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>This package contains nodes to reconstruct a 3D pointcloud from a stereo-camera setup.</description>
   <maintainer email="luka-groot@hotmail.nl">ros</maintainer>
   <license>Apache-2.0</license>
 
@@ -20,7 +20,7 @@
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>cv2</exec_depend>
   <exec_depend>matplotlib</exec_depend>
-  <exec_depend>ros2_numpy</exec_depend>
+  <!-- <exec_depend>ros2_numpy</exec_depend> -->
   <exec_depend>open3d</exec_depend>
 
 

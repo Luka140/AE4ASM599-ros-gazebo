@@ -1,5 +1,3 @@
-# REMEMBER TO SOURCE ROS BEFORE BUILDING THIS
-
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
@@ -46,6 +44,11 @@ def generate_launch_description():
         executable="keyboard_capture"
     )
 
+    filter = Node(
+        package="environment_reconstruction",
+        executable="filter"
+    )
+
     # Hacky transform. Im using PosePublisher from gazebo to publish the ground truth location of the vehicle, 
     # but this publishes it as a transform with respect to the world_demo frame instead of the world frame itself.
     # Without this there is a missing link in the TF tree. 
@@ -62,4 +65,5 @@ def generate_launch_description():
     ld.add_action(keyboard_capture)
     ld.add_action(cluster)
     ld.add_action(cluster_client)
+    ld.add_action(filter)
     return ld

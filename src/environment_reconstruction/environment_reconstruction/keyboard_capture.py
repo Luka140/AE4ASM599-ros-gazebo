@@ -22,6 +22,7 @@ class KeyboardToCapture(node.Node):
         
         self.capture_cli = self.create_client(Reconstruct, 'reconstruct_3d_view')
         self.cluster_pub = self.create_publisher(Empty, 'cluster_trigger', 10)
+        self.filter_pub = self.create_publisher(Empty, 'filter_trigger', 10)
         self.cmd_pub = self.create_publisher(Twist, 'cmd_vel', 10)
         self.get_logger().info("capture node created")
 
@@ -37,6 +38,9 @@ class KeyboardToCapture(node.Node):
             # Press "C" to cluster the pointcloud. This sends a trigger to the request cluster client
             self.cluster_pub.publish(Empty())
 
+        if msg.data == 70:
+            # Press "F" to filter the pointcloud. This sends a trigger to the request filter client
+            self.filter_pub.publish(Empty())
 
         if msg.data == 83:
             # Stop movement of vehicle by pressing "s"

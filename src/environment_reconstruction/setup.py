@@ -29,6 +29,7 @@ setup(
             'keyboard_capture = environment_reconstruction.keyboard_capture:main',
             'cluster = environment_reconstruction.clustering:main',
             'cluster_client = environment_reconstruction.cluster_client:main',
+            'filter = environment_reconstruction.filter_pcl:main',
             'utils = environment_reconstruction.utils:main'
         ],
     },

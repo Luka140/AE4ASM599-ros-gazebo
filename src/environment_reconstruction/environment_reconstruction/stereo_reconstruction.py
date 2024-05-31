@@ -13,7 +13,7 @@ import open3d as o3d
 class Reconstructor(node.Node):
     def __init__(self):
         super().__init__('reconstructor')
-        self.get_logger().info("Reconstructor node created")
+        
         self.img_l, self.img_r, self.cam_info_l, self.cam_info_r = None, None, None, None
         self.cv_bridge = CvBridge()
         self.depth_lim = 20
@@ -43,6 +43,7 @@ class Reconstructor(node.Node):
         TODO:
         This is kinda inefficient... Update to make the camera only take pics on trigger
         """
+        self.get_logger().info("Reconstructor node created")
 
     def update_img_l(self, img):
         self.image_time = self.get_clock().now().to_msg()
@@ -61,28 +62,30 @@ class Reconstructor(node.Node):
 
     def reconstruct_view(self, request, response):
         """
-        TODO: Z-error grows quadratically with distance, maybe cap the maximum distance
-
         Steps:
         1. Obtain disparity map
         2. Compute Z from disparity map
         3. Compute X, Y from Z and internal camera matrices
         """
+
+        self.get_logger().info("Reconstructing view")
+        
         if self.img_l is None or self.img_r is None:
             self.get_logger().info("No image received yet")
             response.reconstruction = PointCloud2()
             return response
         
+        # ----------------------------------------------------------------
+        # Maybe remove this, it only leads to issues 
         current_time = self.get_clock().now().to_msg()
-        self.get_logger().info(f"{current_time.nanosec, self.image_time.nanosec}")
         if float(current_time.nanosec) > float(self.image_time.nanosec) + 1e8: # if image outdated by 0.1sec
             self.get_logger().info("Image time outdated - time set to current with the assumption gazebo is paused")
             
             curr_time = rclpy.time.Time().from_msg(current_time)
             self.image_time = (
-                curr_time - rclpy.time.Time(seconds=0, nanoseconds=1e8, clock_type=curr_time.clock_type)
+                curr_time - rclpy.duration.Duration(seconds=0, nanoseconds=1e8)
                 ).to_msg()
-
+        # ----------------------------------------------------------------
         
         cam_spacing = request.camera_spacing
         disparity = self.find_disparity_map()
@@ -176,9 +179,14 @@ class Reconstructor(node.Node):
         Version 3:
             Using OpenCV functions to obtain real world coordinates from the disparity map
         """
+        """
+        - Check the format of disparity map
+        - Use R and P to project points from one image to the next to double check correctness
+        """
         intrinsic_mat_l = np.array([self.cam_info_l.k[:3], self.cam_info_l.k[3:6],self.cam_info_l.k[6:]]).astype(np.float32)
         intrinsic_mat_r = np.array([self.cam_info_r.k[:3], self.cam_info_r.k[3:6],self.cam_info_r.k[6:]]).astype(np.float32)
         R1, R2, P1, P2, Q, *_extra_returns = cv.stereoRectify(intrinsic_mat_l, np.zeros((1,5)), intrinsic_mat_r, np.zeros((1,5)), self.img_l.shape[:2], np.zeros((3,3)), np.array([[cam_spacing],[0],[0]]))
+        
         XYZ = cv.reprojectImageTo3D(disparity_map, Q)
 
         # Flatten to a 1D array to make a pointcloud out of it 

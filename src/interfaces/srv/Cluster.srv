@@ -1,3 +1,0 @@
-sensor_msgs/PointCloud2 pointcloud  
----
-sensor_msgs/PointCloud2 clustered_pointcloud

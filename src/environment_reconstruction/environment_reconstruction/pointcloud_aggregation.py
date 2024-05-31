@@ -2,7 +2,7 @@ import rclpy
 import rclpy.node as node
 from sensor_msgs.msg import PointCloud2, PointField
 import numpy as np
-from tf2_ros import TransformListener
+from tf2_ros import TransformListener, LookupException, ExtrapolationException
 from tf2_ros.buffer import Buffer
 import open3d as o3d
 
@@ -49,7 +49,11 @@ class PointcloudAggregator(node.Node):
         target_frame = self.global_frame_id
 
         # Lookup the transformation at the time the pointcloud (picture) was created
-        tf_trans = self.tf_buffer.lookup_transform(target_frame, cam_frame, time, timeout=rclpy.duration.Duration(seconds=3))
+        try:
+            tf_trans = self.tf_buffer.lookup_transform(target_frame, cam_frame, time, timeout=rclpy.duration.Duration(seconds=3))
+        except (LookupException, ExtrapolationException):
+            self.get_logger().info("Could not lookup transform")
+            return
 
         # Create a transformation matrix from the transformation message obtained from tf_trans
         transform = np.eye(4)

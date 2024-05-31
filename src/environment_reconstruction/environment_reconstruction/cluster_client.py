@@ -1,8 +1,12 @@
 import rclpy
 import rclpy.node as node
-from interfaces.srv import Cluster
+from interfaces.srv import PointcloudTransform
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Empty
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
+from threading import Event
+
 
 class ClusterClient(node.Node):
 
@@ -11,65 +15,69 @@ class ClusterClient(node.Node):
 
         self.pointcloud = PointCloud2()
 
-        # self.trigger_sub = self.create_subscription(Empty,
-        #                                             'cluster_trigger',
-        #                                             self.call_cluster,
-        #                                             10)
+        # client_group = MutuallyExclusiveCallbackGroup()
+        # trigger_group = MutuallyExclusiveCallbackGroup()
+
+        self.cluster_trigger = self.create_subscription(Empty,
+                                                    'cluster_trigger',
+                                                    self.call_cluster,
+                                                    10)#, callback_group=trigger_group)
         
+        self.filter_trigger = self.create_subscription(Empty,
+                                                       'filter_trigger',
+                                                       self.call_filter,
+                                                       10)
+
         self.pcl_sub = self.create_subscription(PointCloud2,
                                                 'total_pointcloud',
                                                 self.set_pointcloud,
                                                 10)
         
-        self.cluster_cli = self.create_client(Cluster,
-                                               'cluster_reconstruction')
+        
+        self.cluster_cli = self.create_client(PointcloudTransform, 'cluster_reconstruction')#,
+                                               #callback_group=client_group)
+
+        self.filter_cli = self.create_client(PointcloudTransform, 'filter_pcl')
+
         
         self.cluster_pub = self.create_publisher(PointCloud2,
                                                  'clustered_reconstruction',
                                                  10)        
+        
+        self.filter_pub = self.create_publisher(PointCloud2,
+                                                 'filtered_reconstruction',
+                                                 10)        
 
         self.get_logger().info("Cluster client node created")
 
-    # def call_cluster(self, msg):
-    #     # TODO SPIN UNTIL COMPLETE BROKEN - ALSO DOUBLE RECEIVED ADDED MESSAGES
-    #     self.get_logger().info("Clustering pointcloud")
-    #     req = Cluster.Request()
-    #     req.pointcloud = self.pointcloud
-
-    #     self.response = self.cluster_cli.call_async(req)
-    #     rclpy.spin_until_future_complete(node=self, future=self.response, timeout_sec=20)
-    #     self.get_logger().info(f"{self.response.result()}")
-        
-    #     clustered_pcl = self.response.clustered_pointcloud
-    #     self.cluster_pub.publish(clustered_pcl)
-    #     self.get_logger().info("Pointcloud clustered")
-
     def call_cluster(self, msg):
-        """
-        This service just does not want to work.....
-        rewriting to publisher listener for now 
-        """
+        self.get_logger().info("Clustering pointcloud")
+        self.req = PointcloudTransform.Request()
+        self.req.pointcloud = self.pointcloud
 
-        self.get_logger().info("Waiting for service to become available...")
-        self.cluster_cli.wait_for_service(timeout_sec=10.0)
-        self.get_logger().info("Service available. Clustering pointcloud")
+        future = self.cluster_cli.call_async(self.req)
+        future.add_done_callback(self.cluster_done_callback)
 
-        req = Cluster.Request()
-        req.pointcloud = self.pointcloud
+    def cluster_done_callback(self, future):
+        result = future.result()      
+        clustered_pcl = result.transformed_pointcloud
+        self.cluster_pub.publish(clustered_pcl)
+        self.get_logger().info("Pointcloud clustered and published")
 
-        self.response_future = self.cluster_cli.call_async(req)
-        self.response_future.add_done_callback(self.handle_service_response)
+    def call_filter(self, msg):
+        self.get_logger().info("Filtering pointcloud")
+        self.req = PointcloudTransform.Request()
+        self.req.pointcloud = self.pointcloud
 
+        future = self.filter_cli.call_async(self.req)
+        future.add_done_callback(self.filter_done_callback)
 
-    def handle_service_response(self, future):
-        try:
-            response = future.result()
-            self.get_logger().info(f"Service call succeeded: {response}")
-            clustered_pcl = response.clustered_pointcloud
-            self.cluster_pub.publish(clustered_pcl)
-            self.get_logger().info("Pointcloud clustered and published")
-        except Exception as e:
-            self.get_logger().error(f"Service call failed: {e}")
+    def filter_done_callback(self, future):
+        result = future.result()      
+        filtered_pcl = result.transformed_pointcloud
+        self.filter_pub.publish(filtered_pcl)
+        self.get_logger().info("Pointcloud filtered and published")
+
 
     def set_pointcloud(self, msg):
         self.pointcloud = msg
@@ -79,8 +87,10 @@ def main(args=None):
     rclpy.init(args=args)
     
     cluster_client = ClusterClient()
-
     rclpy.spin(cluster_client)
+    # executor = MultiThreadedExecutor()
+    # executor.add_node(cluster_client)
+    # executor.spin()
 
     cluster_client.destroy_node()
     rclpy.shutdown()

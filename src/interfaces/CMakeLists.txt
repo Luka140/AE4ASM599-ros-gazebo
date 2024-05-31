@@ -28,7 +28,7 @@ endif()
 
 set(srv_files
   "srv/Reconstruct.srv"  
-  "srv/Cluster.srv"
+  "srv/PointcloudTransform.srv"
 )
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${srv_files}
