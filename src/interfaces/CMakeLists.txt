@@ -12,6 +12,8 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 
 find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 if(BUILD_TESTING)
@@ -28,11 +30,16 @@ endif()
 
 set(srv_files
   "srv/Reconstruct.srv"  
+  "srv/ReconstructImage.srv"  
   "srv/PointcloudTransform.srv"
+  "srv/CreateOccupancyMap.srv"
 )
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${srv_files}
   DEPENDENCIES sensor_msgs # Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
+  DEPENDENCIES nav_msgs
+  DEPENDENCIES geometry_msgs
 )
 
 ament_package()

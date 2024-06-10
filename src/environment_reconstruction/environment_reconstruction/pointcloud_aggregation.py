@@ -70,8 +70,13 @@ class PointcloudAggregator(node.Node):
         pcl_o3d.points = o3d.utility.Vector3dVector(loaded_array)
         
         # Remove all NaN points (points for which the depth could not be computed) and transform them
-        pcl_o3d.remove_non_finite_points().transform(transform)
-        
+        pcl_o3d.remove_non_finite_points()
+        pcl_o3d, _ = pcl_o3d.remove_statistical_outlier(
+            nb_neighbors=20,
+            std_ratio=1.0
+        )
+        pcl_o3d.transform(transform)
+
         # Add to the total pointcloud 
         self.pointcloud = self.pointcloud + pcl_o3d 
 
@@ -81,7 +86,7 @@ class PointcloudAggregator(node.Node):
 
         pcl2_msg = self.create_pcl_msg(labels)
         self.pointcloud_pub.publish(pcl2_msg)
-        self.get_logger().info("Added to the pointcloud")
+        self.get_logger().info(f"Added to the pointcloud")
 
 
     def create_pcl_msg(self, labels):

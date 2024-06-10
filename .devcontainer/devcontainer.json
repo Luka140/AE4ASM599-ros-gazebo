@@ -28,7 +28,9 @@
         "--security-opt=apparmor:unconfined",
         "--volume=/tmp/.X11-unix:/tmp/.X11-unix", // Allow X session between container and host
         "--volume=${localEnv:HOME}/.Xauthority:/home/ros/.Xauthority:rw", // Allow X session forwarding over SSH tunnel
-        // "--gpus=all", // Attach all nvidia GPUs. Note that if this is enabled without a GPU present, the container may not run.
+        "--device=/dev/snd:/dev/snd",
+        "--group-add=audio",
+        "--gpus=all", // Attach all nvidia GPUs. Note that if this is enabled without a GPU present, the container may not run.
         "--device=/dev/dri", // Attach a specific device to the container (in this case, the iGPU)
         "--privileged",
         "--net=host"

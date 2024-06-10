@@ -1,0 +1,9 @@
+sensor_msgs/Image left_image
+sensor_msgs/Image right_image
+sensor_msgs/CameraInfo cam_info_l
+sensor_msgs/CameraInfo cam_info_r
+float64 baseline
+geometry_msgs/Pose pose
+---
+sensor_msgs/PointCloud2 pointcloud
+geometry_msgs/Pose pose
