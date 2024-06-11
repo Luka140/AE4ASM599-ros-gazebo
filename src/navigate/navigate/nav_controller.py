@@ -1,8 +1,34 @@
+"""
+This ROS 2 node, named 'nav_controller_node', implements a PID controller for controlling the linear and angular velocities of a mobile robot based on a reference pose received from a topic.
+
+The node subscribes to two topics:
+1. '/input/pose': Receives the desired reference pose (position and orientation) for navigation.
+2. '/input/odom': Receives the odometry data of the robot, including its current position and orientation.
+
+The node computes the linear and angular velocities required to navigate the robot towards the reference pose using a PID control strategy. The computed velocities are published as TwistStamped messages to the topic '/output/cmd_vel'.
+
+The PID controller parameters (proportional, integral, and derivative gains) and other control parameters (such as maximum velocities and tolerances) can be configured using ROS 2 parameters.
+
+The linear velocity PID controller adjusts the forward velocity of the robot to minimize the position error between the current position and the reference position.
+
+The angular velocity PID controller adjusts the angular velocity (yaw rate) of the robot to minimize the orientation error between the current orientation and the desired orientation (yaw) towards the reference pose.
+
+The 'euler_from_quaternion' and 'angle_wrapping' utility functions are provided to convert quaternions to Euler angles and wrap angles to the range [-π, π], respectively.
+
+The node utilizes the ROS 2 parameter server to store and retrieve controller parameters and the ROS 2 time API for time calculations.
+
+To use this controller node, publishers must provide odometry data on the '/input/odom' topic, and the desired reference pose must be published on the '/input/pose' topic. The controller then computes and publishes velocity commands to control the robot's motion towards the reference pose.
+
+Upon shutdown, the node releases its resources and shuts down the ROS 2 runtime.
+
+Note: This controller assumes that the robot's odometry data is provided by the '/input/odom' topic and that the reference pose is specified in the 'PoseStamped' message format.
+"""
+
 import numpy as np
 
 import rclpy
 from rclpy.node import Node
-from tf2_ros import TransformBroadcaster
+from rclpy.qos import QoSProfile
 
 from geometry_msgs.msg import TwistStamped, Pose, PoseStamped
 from nav_msgs.msg import Odometry
@@ -30,6 +56,9 @@ def euler_from_quaternion(x, y, z, w):
     return roll_x, pitch_y, yaw_z # in radians
 
 def angle_wrapping(angle):
+    """
+    Wraps angles to be limited to -pi to pi
+    """
     if angle > np.pi:
         angle -= 2*np.pi
     elif angle < -np.pi:
@@ -56,14 +85,19 @@ class NavController(Node):
                 ('max_vel_angular', 5.0),
                 ('tolerance', 0.15)
             ]
-            )
+        )
+        
+        # Quality of service
+        qos_profile = QoSProfile(
+            depth=1
+        )
 
         # Subscribe to trajectory information
         self.reference_sub = self.create_subscription(
             PoseStamped, 
             '/input/pose', 
             self.reference_callback, 
-            10
+            qos_profile
             )
         
         # Subscribe to vehicle odometry for feedback
@@ -71,14 +105,14 @@ class NavController(Node):
             Odometry,
             '/input/odom',
             self.feedback_callback,
-            10
+            qos_profile
             )
         
         # Publish twist command
         self.command_vel_pub = self.create_publisher(
             TwistStamped,
             '/output/cmd_vel',
-            10
+            qos_profile
             )
 
         # Store reference pose
@@ -103,10 +137,12 @@ class NavController(Node):
         self.delta_time = (current_time - self.prev_time)*1e-9
         self.prev_time = current_time
 
+        # Exit callback when there is no pose information known
         if self.pose_ref is None:
             return
         pose = msg.pose.pose
 
+        # Get linear and angular command
         vel_x = self.linear_velocity(pose)
         yaw_rate = self.angular_velocity(pose)
 
@@ -121,12 +157,12 @@ class NavController(Node):
 
     def reference_callback(self, msg: PoseStamped) -> None:
         """
-        Store the reference
+        Callback to keep track of the requested reference
         """
         self.pose_ref = msg.pose
 
     def linear_velocity(self, pose: Pose) -> None:
-
+        """pid controller for linear control"""
         # Get parameters
         kp_linear = self.get_parameter("kp_linear").value
         ki_linear = self.get_parameter("ki_linear").value
@@ -139,14 +175,10 @@ class NavController(Node):
 
         # Get current position.
         position = np.array([pose.position.x, pose.position.y])
+        position_error = position_ref - position
 
         # Get current angle.
         yaw = euler_from_quaternion(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w)[2]
-        
-        position_error = position_ref - position
-        if np.linalg.norm(position_error) < self.get_parameter("tolerance").value:
-            pass   
-            #return 0.0
 
         # Transform to body frame
         delta_body = np.array([[np.cos(yaw), np.sin(yaw)],[-np.sin(yaw), np.cos(yaw)]])@position_error.T
@@ -159,14 +191,13 @@ class NavController(Node):
         self.d_error_linear = error
 
         vel_x = p_term_linear + d_term_linear + self.i_term_linear
-
         vel_x = max(min(vel_x, max_vel_linear), 0.0)
 
         return vel_x
 
 
     def angular_velocity(self, pose: Pose) -> None:
-
+        """pid controller for angular control"""
         # Get parameters
         kp_angular = self.get_parameter("kp_angular").value
         ki_angular = self.get_parameter("ki_angular").value
@@ -185,6 +216,7 @@ class NavController(Node):
         position_error = position_ref - position
         yaw_ref = np.arctan2(position_error[1], position_error[0])
 
+        # aim for reference orientation when close
         if np.linalg.norm(position_error) < self.get_parameter("tolerance").value:
             yaw_ref = euler_from_quaternion(self.pose_ref.orientation.x, self.pose_ref.orientation.y, self.pose_ref.orientation.z, self.pose_ref.orientation.w)[2]
 
