@@ -1,7 +1,7 @@
-## Robot Package
+## Simulation Package
 This package provides a simulation environment containing the gazebo world and robot description. By bundeling this together with a convenient launch file the workflow for developing robotics systems is significantly simplified.
 
-### Launch simulation environemnt
+### Utilisation
 Launch the sim environment:
 ```bash
 ros2 launch simulation launch_sim.launch.py
@@ -25,6 +25,7 @@ The structure of the package is as follows.
 The robot description is provided in the **description** directory in `URDF` format. `xacro` is used to allow for a parametrised description of the robot.
 * **robot_core.xacro:** describes the links and joints making up the robot. Defines the physical layout of the robot.
 * **ros2_control.xacro:** contains the ros2 control setup of the robot. Defines the behaviour of the actuators and exposes these to ROS2.
+* **lidar.xacro:** contains lidar sensor setup.
 
 The robot description is fully parametrised and all parameters are located in **robot.urdf.xacro**.
 
