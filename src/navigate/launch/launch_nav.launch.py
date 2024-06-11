@@ -16,7 +16,7 @@ def generate_launch_description():
         executable = 'nav_pose_server',
         parameters = [config],
         remappings=[
-            ('/input/odom', '/ground_truth/odom'),
+            ('/input/odom', '/diff_cont/odom'),
             ('/output/reference', '/nav/goal_pose')
         ]
     )
@@ -36,7 +36,7 @@ def generate_launch_description():
         executable = 'nav_controller',
         remappings=[
             ('/input/pose', '/nav/goal_pose'),
-            ('/input/odom', '/ground_truth/odom'),
+            ('/input/odom', '/diff_cont/odom'),
             ('/output/cmd_vel', '/diff_cont/cmd_vel')
         ]
     )

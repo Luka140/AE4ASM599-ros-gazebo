@@ -22,7 +22,11 @@
     <!-- BASE LINK -->
 
     <link name="base_link">
-
+        <inertial>
+            <mass value="0.0001"/>
+            <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001"/>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+          </inertial>
     </link>
 
 
@@ -83,6 +87,8 @@
     </link>
     <gazebo reference="left_wheel">
         <material>Gazebo/Blue</material>
+        <mu1 value="${wheel_mu1}"/>
+        <mu2 value="${wheel_mu2}"/>
     </gazebo>
 
     <!-- RIGHT WHEEL LINK -->
@@ -112,6 +118,8 @@
     </link>
     <gazebo reference="right_wheel">
         <material>Gazebo/Blue</material>
+        <mu1 value="${wheel_mu1}"/>
+        <mu2 value="${wheel_mu2}"/>
     </gazebo>
 
     <!-- CASTER WHEEL LINK -->

@@ -4,7 +4,7 @@ from ament_index_python.packages import get_package_share_directory
 
 
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, RegisterEventHandler
+from launch.actions import IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration,PythonExpression
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
@@ -12,8 +12,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
 
-    # Include the robot_state_publisher launch file, provided by our own package. Force sim time to be enabled
-    package_name='my_bot'
+    package_name='simulation'
 
     # Get path to gazebo parameters file
     gazebo_params_path = os.path.join(get_package_share_directory(package_name),
@@ -33,13 +32,12 @@ def generate_launch_description():
         'view_bot.rviz'
     )
 
+    # Include the RSP (robot state publisher) launch file.
     rsp = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [os.path.join(get_package_share_directory(package_name),'launch','rsp.launch.py')]),
         launch_arguments={'use_sim_time': 'true'}.items()
     )
-
-
 
     # Include the Gazebo launch file, provided by the ros_gz_sim package
     gazebo = IncludeLaunchDescription(
@@ -54,58 +52,42 @@ def generate_launch_description():
         executable='create',
         output='screen',
         arguments=[
-            '-name', 'my_bot',
+            '-name', 'robot',
             '-topic', 'robot_description',
             '-z', '0.06',
         ]
     )
 
+    # Run the bridge node from the ros_gz_bridge package.
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
-        '/model/my_bot/pose@tf2_msgs/msg/TFMessage@ignition.msgs.Pose_V',
-        '/world/empty_world/dynamic_pose/info@tf2_msgs/msg/TFMessage@ignition.msgs.Pose_V',
-        '/clock@rosgraph_msgs/msg/Clock@ignition.msgs.Clock',
+        '/clock@rosgraph_msgs/msg/Clock@ignition.msgs.Clock',   # Needed to know sim_time
         ]
     )
 
-    tf_broad = Node(
-        package='gz_tf_broadcaster',
-        executable='tf_broadcaster',
-        output='screen',
-        remappings=[
-            ('/gz/model/pose', '/model/my_bot/pose')
-        ]
-    )
-
-    tf_to_odom = Node(
-        package='gz_tf_broadcaster',
-        executable='tf_to_odom',
-        output='screen',
-        remappings=[
-            ('/gz/model/pose', '/model/my_bot/pose')
-        ]
-    )
-
+    # Spawn the differenctial drive node from the controller_manager package.
     diff_drive_spawner = Node(
         package='controller_manager',
         executable='spawner',
         arguments=['diff_cont'],
     )
 
+    # Spawn the joint state broadcaster node from the controller_manager package.
     joint_broad_spawner = Node(
         package='controller_manager',
         executable='spawner',
         arguments=['joint_broad']
     )
 
+    # Start rviz.
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
         name='rviz2',
         output='log',
-        arguments=['-d', rviz_config_path,]
+        arguments=['-d', rviz_config_path,],
     )
 
     # Launch
@@ -114,8 +96,6 @@ def generate_launch_description():
         gazebo,
         spawn_entity,
         bridge,
-        tf_broad,
-        tf_to_odom,
         diff_drive_spawner,
         joint_broad_spawner,
         rviz_node
