@@ -2,10 +2,14 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro"  name="robot">
 
     <!-- ROVER PARAMETERS-->
+    <xacro:property name="package_name" value="simulation" />
+
     <!-- wheel parameters -->
     <xacro:property name="wheel_radius" value="0.05" />
     <xacro:property name="wheel_width" value="0.05" />
     <xacro:property name="wheel_mass" value="0.1" />
+    <xacro:property name="wheel_mu1" value="10.0" />
+    <xacro:property name="wheel_mu2" value="10.0" />
 
     <!-- caster parameters -->
     <xacro:property name="caster_radius" value="0.05" />
@@ -32,8 +36,7 @@
 
     <xacro:include filename="robot_core.xacro" />
     <xacro:include filename="ros2_control.xacro" />
-    <xacro:include filename="gazebo_plugins.xacro" />
     <xacro:include filename="lidar.xacro" />
+    <xacro:include filename="gazebo_plugins.xacro" />
 
-    
 </robot>
