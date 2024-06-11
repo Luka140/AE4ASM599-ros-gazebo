@@ -31,6 +31,9 @@
     <xacro:property name="lidar_max_range" value="30" />
     <xacro:property name="lidar_update_rate" value="1" />
 
+    <xacro:property name="lidar_viz_cylinder_radius" value="0.01" />
+    <xacro:property name="lidar_viz_cylinder_height" value="0.01" />
+
     <!-- dynamic parameters -->
     <xacro:property name="wheel_max_velocity" value="10" />
 
