@@ -67,8 +67,16 @@ def generate_launch_description():
         '/model/my_bot/pose@tf2_msgs/msg/TFMessage@ignition.msgs.Pose_V',
         '/world/empty_world/dynamic_pose/info@tf2_msgs/msg/TFMessage@ignition.msgs.Pose_V',
         '/clock@rosgraph_msgs/msg/Clock@ignition.msgs.Clock',
+        '/lidar@sensor_msgs/msg/LaserScan@ignition.msgs.LaserScan',
         ]
     )
+
+    static_tf_publisher = Node(package="tf2_ros",
+                               executable='static_transform_publisher',
+                               arguments= [("0", "0", "0", "0", "0", "0", "laser_frame", "gpu_lidar"),
+                                           ]
+    )
+        
 
     tf_broad = Node(
         package='gz_tf_broadcaster',
@@ -114,6 +122,7 @@ def generate_launch_description():
         gazebo,
         spawn_entity,
         bridge,
+        static_tf_publisher,
         tf_broad,
         tf_to_odom,
         diff_drive_spawner,
