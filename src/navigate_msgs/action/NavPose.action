@@ -1,0 +1,16 @@
+# Goal definition
+geometry_msgs/PoseStamped pose
+
+
+---
+# Result definition
+uint16 SUCCESS=0
+uint16 CANCEL=1
+uint16 TIMEOUT=2
+uint16 success
+
+---
+# Feedback definition
+geometry_msgs/PoseStamped pose
+float32 duration
+float32 distance                # Distance to goal
