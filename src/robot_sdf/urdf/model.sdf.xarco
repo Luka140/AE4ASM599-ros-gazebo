@@ -1,0 +1,240 @@
+<?xml version="1.0" ?>
+
+<sdf version="1.8" xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <model name="test_car">
+
+        <!-- Parameters -->
+        <xacro:property name="chassis_length" value="0.5"/>
+        <xacro:property name="chassis_width" value="0.4"/>
+        <xacro:property name="chassis_height" value="0.3"/>
+
+        <xacro:property name="wheel_radius" value="0.2"/>
+        <xacro:property name="wheel_width" value="0.1"/>
+
+        <xacro:property name="caster_radius" value="0.1"/>
+        <xacro:property name="caster_edge_distance" value="0.1"/>
+
+        <xacro:property name="cam_hfov" value="1.047"/>
+        <xacro:property name="cam_hres" value="1280"/>
+        <xacro:property name="cam_vres" value="720"/>
+
+
+        <!-- Useful constants-->
+        <xacro:property name="pi" value="1.5707"/>
+        <xacro:property name="infty" value="1.79769e+308"/>
+
+        <!-- Useful macro blocks-->
+        <xacro:macro name="inertial_wheel" params="m ix iy iz">
+            <inertial>
+                <mass>${m}</mass>
+                <inertia>
+                    <ixx>${ix}</ixx>
+                    <ixy>0</ixy>
+                    <ixz>0</ixz>
+                    <iyy>${iy}</iyy>
+                    <iyz>0</iyz>
+                    <izz>${iz}</izz>
+                </inertia>
+            </inertial>
+        </xacro:macro>
+        
+        <xacro:macro name="geo_wheel" params="r l">
+            <visual name='visual'>
+                <geometry>
+                    <cylinder>
+                        <radius>${r}</radius>
+                        <length>${l}</length>
+                    </cylinder>
+                </geometry>
+                <material>
+                    <ambient>1.0 0.0 0.0 1</ambient>
+                    <diffuse>1.0 0.0 0.0 1</diffuse>
+                    <specular>1.0 0.0 0.0 1</specular>
+                </material>
+            </visual>
+            <collision name='collision'>
+                <geometry>
+                    <cylinder>
+                        <radius>${r}</radius>
+                        <length>${l}</length>
+                    </cylinder>
+                </geometry>
+            </collision>
+        </xacro:macro>
+
+
+        <!--======================== Geometry ========================-->
+        <canonical_link name="chassis">
+            <pose relative_to='__model__'>0 0 ${wheel_radius} 0 0 0</pose>
+            
+            <inertial>
+                <mass>1.14395</mass>
+                <inertia>
+                    <ixx>0.095329</ixx>
+                    <ixy>0</ixy>
+                    <ixz>0</ixz>
+                    <iyy>0.381317</iyy>
+                    <iyz>0</iyz>
+                    <izz>0.476646</izz>
+                </inertia>
+            </inertial>
+            <visual name='visual'>
+                <geometry>
+                    <box>
+                        <size>${chassis_length} ${chassis_width} ${chassis_height}</size>
+                    </box>
+                </geometry>
+                <!--let's add color to our link-->
+                <material>
+                    <ambient>0.0 0.0 1.0 1</ambient>
+                    <diffuse>0.0 0.0 1.0 1</diffuse>
+                    <specular>0.0 0.0 1.0 1</specular>
+                </material>
+            </visual>
+            <collision name='collision'>
+                <geometry>
+                    <box>
+                        <size>${chassis_length} ${chassis_width} ${chassis_height}</size>
+                    </box>
+                </geometry>
+            </collision>
+
+            <!--======================== Chassis sensors ========================-->
+            <sensor name="left_camera" type="camera">
+                <pose relative_to="chassis">${chassis_length/2} ${chassis_width/2} ${chassis_height/2} 0 0 0</pose>
+
+                <camera>
+                    <horizontal_fov>${cam_hfov}</horizontal_fov>
+                    <image>
+                        <width>${cam_hres}</width>
+                        <height>${cam_vres}</height>
+                    </image>
+                    <clip>
+                        <near>0.1</near>
+                        <far>100</far>
+                    </clip>
+                </camera>
+                <always_on>1</always_on>
+                <update_rate>10</update_rate>
+                <visualize>true</visualize>
+                <topic>camera_l</topic>
+            </sensor>
+
+            <sensor name="right_camera" type="camera">
+                <pose relative_to="chassis">${chassis_length/2} ${-chassis_width/2} ${chassis_height/2} 0 0 0</pose>
+                <camera>
+                    <horizontal_fov>${cam_hfov}</horizontal_fov>
+                    <image>
+                        <width>${cam_hres}</width>
+                        <height>${cam_vres}</height>
+                    </image>
+                    <clip>
+                        <near>0.1</near>
+                        <far>100</far>
+                    </clip>
+                </camera>
+                <always_on>1</always_on>
+                <update_rate>10</update_rate>
+                <visualize>true</visualize>
+                <topic>camera_r</topic>
+            </sensor>
+
+        </canonical_link>
+
+        <!--======================== Wheels ========================-->
+        <link name="left_wheel">
+            <pose relative_to="chassis">${-chassis_length/2} ${-(chassis_width/2 + wheel_width/2)} ${-chassis_height/2} ${-pi} 0 0</pose>
+            <xacro:inertial_wheel m="1" ix="0.043333" iy="0.043333" iz="0.08"/>
+            <xacro:geo_wheel r="${wheel_radius}" l="${wheel_width}"/>
+        </link>
+
+        <joint name="left_wheel_joint" type="revolute">
+            <pose relative_to="left_wheel"></pose>
+            <parent link="chassis"/>
+            <child link="left_wheel"/>
+            <axis>
+                <xyz expressed_in='__model__'>0 1 0</xyz> <!--can be defined as any frame or even arbitrary frames-->
+                <limit>
+                    <lower>${-infty}</lower>    <!--negative infinity-->
+                    <upper>${infty}</upper>     <!--positive infinity-->
+                </limit>
+            </axis>
+        </joint>
+
+        <link name="right_wheel">
+            <pose relative_to="chassis">${-chassis_length/2} ${chassis_width/2 + wheel_width/2} ${-chassis_height/2} ${-pi} 0 0</pose>
+            <xacro:inertial_wheel m="1" ix="0.043333" iy="0.043333" iz="0.08"/>
+            <xacro:geo_wheel r="${wheel_radius}" l="${wheel_width}"/>
+        </link>
+        
+        <joint name="right_wheel_joint" type="revolute">
+            <pose relative_to="right_wheel"></pose>
+            <parent link="chassis"/>
+            <child link="right_wheel"/>
+            <axis>
+                <xyz expressed_in='__model__'>0 1 0</xyz> <!--can be defined as any frame or even arbitrary frames-->
+                <limit>
+                    <lower>${-infty}</lower>    <!--negative infinity-->
+                    <upper>${infty}</upper>     <!--positive infinity-->
+                </limit>
+            </axis>
+        </joint>
+
+        <frame name="caster_frame" attached_to='chassis'>
+            <pose>{chassis_length/2 - caster_edge_distance} 0 {-(chassis_height/2 + caster_radius)} 0 0 0</pose>
+        </frame>
+        <link name='caster'>
+            <pose relative_to='caster_frame'/>
+            <inertial>
+                <mass>1</mass>
+                <inertia>
+                    <ixx>0.016</ixx>
+                    <ixy>0</ixy>
+                    <ixz>0</ixz>ign
+                    <iyy>0.016</iyy>
+                    <iyz>0</iyz>
+                    <izz>0.016</izz>
+                </inertia>
+            </inertial>
+            <visual name='visual'>
+                <geometry>
+                    <sphere>
+                        <radius>0.2</radius>
+                    </sphere>
+                </geometry>
+                <material>
+                    <ambient>0.5 1 0.5 1</ambient>
+                    <diffuse>1.0 0.0 0.0 1</diffuse>
+                    <specular>1.0 1 0.0 1</specular>
+                </material>
+            </visual>
+            <collision name='collision'>
+                <geometry>
+                    <sphere>
+                        <radius>0.2</radius>
+                    </sphere>
+                </geometry>
+            </collision>
+        </link>
+        
+        <joint name='caster_wheel' type='ball'>
+            <parent>chassis</parent>
+            <child>caster</child>
+        </joint>
+
+    
+
+        <!--======================== Plugins ========================-->
+        <plugin
+            filename="libignition-gazebo-diff-drive-system.so"
+            name="ignition::gazebo::systems::DiffDrive">
+            <left_joint>left_wheel_joint</left_joint>
+            <right_joint>right_wheel_joint</right_joint>
+            <wheel_separation>${chassis_width + wheel_width}</wheel_separation>
+            <wheel_radius>${wheel_radius}</wheel_radius>
+            <odom_publish_frequency>10</odom_publish_frequency>
+            <topic>cmd_vel</topic>
+        </plugin>
+    
+    </model>
+</sdf>

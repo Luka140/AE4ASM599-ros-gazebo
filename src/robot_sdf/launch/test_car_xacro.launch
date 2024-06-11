@@ -1,0 +1,4 @@
+<?xml version="1.0" ?>
+<launch>
+    <param name="robot_description" value="$(find xacro)/xacro '$(find robot_sdf)/urdf/test_car.sdf.xacro'"/>
+</launch>

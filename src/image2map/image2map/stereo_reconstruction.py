@@ -22,8 +22,10 @@ class Reconstructor(node.Node):
         )
 
         self.depth_lim = self.get_parameter('depth_lim').value
-        self.height_lim = self.get_parameter('height_lim').value
+        self.height_threshold = self.get_parameter('height_lim').value
         self.voxel_downsample_size = self.get_parameter('voxel_downsample_size').value
+
+        self.floor_threshold = 0.1
         
         callbackgroup = ReentrantCallbackGroup()
         self.srv = self.create_service(ReconstructImage, 
@@ -85,10 +87,15 @@ class Reconstructor(node.Node):
         batched_imgxyz = np.einsum("ij, ik->ij", batched_imgxy1, depth.T.reshape(-1,1)) # multiply each [x,y,1] with depth
 
         XYZ = np.einsum("bi, ij -> bj", batched_imgxyz, int_mat_inv.T) # Obtain XYZ coordinates from intrinsic camera matrix 
+
+        # Set points that are irrelevant to nan so they will be filtered out later. The floor threshold should filter out points that are reconstructions of the 
+        # floor, and therefore not obstacles. The height threshold filters out points that can be driven underneath.
+        XYZ[np.where((XYZ[:,1] < self.floor_threshold) + (XYZ[:,1] > self.height_threshold))] = [np.nan, np.nan, np.nan] 
         
         # To save computation time, the points can be projected to the floor (or at least a single plane) so they will be grouped by voxel_down_sample later.
         # This means Z should be zero. However due to the rotation below, this is actually still Y in this step (in the camera reference frame). 
-        # The reason to do this projects at this point is to save on an additional np.asarray() casting and back to open3d
+        # The /home/ros/ros2_ws/src/image2map/resourcereason to do this projects at this point is to save on an additional np.asarray() casting and back to open3d
+
         XYZ[:,1] = 0 
 
         # Rotation to transform from typical camera coordinate system to world coordinate conventions

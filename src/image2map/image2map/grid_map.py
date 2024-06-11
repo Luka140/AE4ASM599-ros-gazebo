@@ -51,7 +51,7 @@ class GridMapper(node.Node):
         self.position = np.array([0.0, 0.0], dtype=float)
 
         # Initialise variables for occupancy grid creation
-        self.resolution = .25   # Resolution of occupancy grid (metres per cell)
+        self.resolution = .5   # Resolution of occupancy grid (metres per cell)
         self.x_width      = 75.0 # Width of occupancy grid (metres)
         self.y_width     = 75.0  # Height of occupancy grid (metres)
 
@@ -80,11 +80,16 @@ class GridMapper(node.Node):
             self.grid.info.height = int(self.y_width/self.resolution)
             self.grid.info.origin.position.x = position.x - self.x_width / 2 
             self.grid.info.origin.position.y = position.y - self.y_width / 2
+            # Initialise every cell as unknown
             self.grid.data = [-1]*self.grid.info.width*self.grid.info.height
 
-
-            mesh_grid_x, mesh_grid_y = np.meshgrid(np.arange(self.grid.info.origin.position.x + self.resolution/2, self.grid.info.origin.position.x + self.x_width + self.resolution/2, self.resolution),
-                                    np.arange(self.grid.info.origin.position.y + self.resolution/2, self.grid.info.origin.position.y + self.y_width + self.resolution/2, self.resolution))
+            # Create a mesh grid that contains every point in the center of the cells of the grid 
+            mesh_grid_x, mesh_grid_y = np.meshgrid(np.arange(self.grid.info.origin.position.x + self.resolution/2, 
+                                                             self.grid.info.origin.position.x + self.x_width + self.resolution/2, 
+                                                             self.resolution),
+                                                   np.arange(self.grid.info.origin.position.y + self.resolution/2, 
+                                                             self.grid.info.origin.position.y + self.y_width + self.resolution/2, 
+                                                             self.resolution))
             self.mesh_points = np.vstack((mesh_grid_x.flatten(), mesh_grid_y.flatten())).T
 
         # Rotate pcl points to global orientation and shift reference frame to the origin of the grid map
@@ -113,9 +118,7 @@ class GridMapper(node.Node):
             # previously unkown, now it is observed
             if self.grid.data[idx] == -1:
                 self.grid.data[idx] = 30 
-            # elif self.grid.data[idx] != 100:
-            #     self.grid.data[idx] = int(self.grid.data[idx] * self.prev_weight + (1-self.prev_weight) * 30)
-        
+
         for idx in high_certainty_observed_indices:
             if self.grid.data[idx] != 100:
                 self.grid.data[idx] = 1 # int(self.grid.data[idx] * self.prev_weight + (1-self.prev_weight) * 1)
@@ -150,7 +153,6 @@ class GridMapper(node.Node):
             If these two criteria are met, the loop skips to this point. This ensures that points close to the vehicle obscure points behind them.
             If there are two pointcloud clusters behind each other, we want to skip all of the points of the furthest cluster, because this would cause a very
             jagged polygon that may lead to obscured gridpoints being set to seen. 
-        
         """
         
         # Draw a triangle with an angle equivalent to the fov, and a depth equivalent to the maximum camera depth 
@@ -175,7 +177,7 @@ class GridMapper(node.Node):
         sorting_pcl = np.vstack((pointcloud_relative, outer_left_relative, outer_right_relative))
         pcl = pointcloud[np.arctan2(sorting_pcl[:,1], sorting_pcl[:,0]).argsort()]
 
-        # The polygon should start at the current position, then move to the corner of the triangle
+        # The polygon should start at the current position, then move to the corner of the triangle 
         vertices = [np.array((position[0], position[1]))]
         seen_vertices = [np.array((position[0], position[1]))]
         skip_points = 0   
@@ -223,7 +225,7 @@ class GridMapper(node.Node):
         vertices += [np.array((position[0], position[1]))]
         seen_vertices.append(position)
 
-        # =============================================== PLOTS FOR DEBUGGING ===============================================  
+        # =============================================== PLOTS FOR DEBUGGING =================================================  
         # vertex_arr = np.array(vertices)
         
         # vertex_nr = list(range(1,vertex_arr.shape[0]))
@@ -242,7 +244,7 @@ class GridMapper(node.Node):
         # plt.show()
         # input()
 
-        #===================================================================================================================
+        #=====================================================================================================================
 
         path = mpath.Path(vertices, closed=True)
         seen_path = mpath.Path(seen_vertices, closed=True)

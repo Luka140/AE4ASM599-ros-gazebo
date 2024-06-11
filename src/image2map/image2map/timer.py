@@ -1,27 +1,15 @@
 import rclpy
 import rclpy.node as node
-from cv_bridge import CvBridge
-from sensor_msgs.msg import Image, PointCloud2, CameraInfo, PointField
+from sensor_msgs.msg import Image, PointCloud2, CameraInfo
 from nav_msgs.msg import OccupancyGrid
-from std_msgs.msg import Header
 from geometry_msgs.msg import Pose
 from interfaces.srv import ReconstructImage, PointcloudTransform, CreateOccupancyMap
 
 from tf2_ros import TransformListener, LookupException, ExtrapolationException
 from tf2_ros.buffer import Buffer
 
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import ReentrantCallbackGroup
 
-
-"""
-
-This file should have a node that calls stereo_reconstruction on a timer.
-It should then call the filter node on that pointcloud.
-It should then call the occupancy node to add that filtered pointcloud 
-
-It should also store a list of poses with the added pointclouds
-"""
 
 class Coordinator(node.Node):
     
@@ -69,7 +57,6 @@ class Coordinator(node.Node):
 
         self.tf_buffer = Buffer(cache_time=rclpy.time.Time(seconds=10))
         self.tf_listener = TransformListener(self.tf_buffer, self)
-
         
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
@@ -78,14 +65,14 @@ class Coordinator(node.Node):
         """
         self.get_logger().info(f"Coordinator node started - time {self.get_clock().now()}")
 
-
     def timer_callback(self):
         """
-        collect images 
-        RECORD CURRENT POSE
-        ask reconstruction
-        ask filtering
-        ask occupancy
+        This callback executes the following pipeline:
+        - Collect the latest images
+        - Collect the current pose
+        - Perform a the 3d reconstruction based on these images
+        - Filter down these points based on voxel-downfiltering (this is already performed in the 3d reconstruction call)
+        - Update the occupancy map based on these points 
         """
         self.get_logger().info("Starting reconstruction")
 
@@ -96,7 +83,8 @@ class Coordinator(node.Node):
         self.call_count += 1
 
         reconstruct = self.create_reconstruct_msg()
-    
+
+        # Find the current position from the transform buffer 
         try:
             self.get_logger().info("Lookup up transform")
             tf_trans = self.tf_buffer.lookup_transform(self.world_frame, reconstruct.left_image.header.frame_id, 
@@ -106,12 +94,14 @@ class Coordinator(node.Node):
             self.get_logger().info(f"\n\nCould not lookup transform for call {self.call_count}\n\n {exception}")
             return
         
+        # The current pose is passed along with the reconstruction request, so that it can be fed through to the mapping request
         reconstruct.pose = Pose()
-    
         reconstruct.pose.position.x = tf_trans.transform.translation.x
         reconstruct.pose.position.y = tf_trans.transform.translation.y
         reconstruct.pose.position.z = tf_trans.transform.translation.z
         reconstruct.pose.orientation = tf_trans.transform.rotation
+
+        # Request the reconstruction - the next steps will be called from the recon_done_callback
         reconstruction = self.reconstruction_client.call_async(reconstruct)
         reconstruction.add_done_callback(self.recon_done_callback)
         
@@ -121,10 +111,12 @@ class Coordinator(node.Node):
         res = result.result()
         pointcloud = res.pointcloud
         pose = res.pose
+
         self.relative_pointclouds.append(pointcloud)
         self.filtered_publisher.publish(pointcloud)
         self.get_logger().info("Published pointcloud ")
 
+        # Request an update of the occupancy map based on the finished reconstruction
         map_request = CreateOccupancyMap.Request()
         map_request.pointcloud = pointcloud
         map_request.pose = pose 
@@ -133,17 +125,21 @@ class Coordinator(node.Node):
         call_map.add_done_callback(self.map_done_callback)
 
     def map_done_callback(self, result):
+        # publish the updated occupancy grid
         self.grid = result.result().occupancygrid
         self.map_publisher.publish(self.grid)
         self.get_logger().info("Published map")
     
     def update_img_l(self, img):
+        # update to the latest image
         self.img_l = img
 
     def update_img_r(self, img):
+        # update to the latest image
         self.img_r = img
 
     def update_camera_info(self, cam_info):
+        # update to the latest camera info
         if "right_" in cam_info.header.frame_id:
             self.cam_info_r = cam_info
         else:
