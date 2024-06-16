@@ -3,7 +3,11 @@
 The `navigate` ROS 2 package provides nodes and utilities for controlling a differential drive robot's navigation behavior. This package is made as a learning exercise in ROS2 humble to learn how to use topics, actions, parameters, and how to link multiple nodes together.
 
 ## Nodes
-
+The navigation stack consists out of three nodes.
+- **NavController**
+- **NavPoseClient**
+- **NavPoseServer**
+  
 ### 1. NavController
 
 The `NavController` is responsible for controlling the linear and angular velocities of a differential drive robot based on a reference pose received from a topic. It implements two PID controllers to compute the required velocities for navigation.
@@ -33,6 +37,14 @@ The `NavController` is responsible for controlling the linear and angular veloci
 
 The `NavPoseServer` is an action server node that provides the functionality for navigating a differential drive robot to a specified pose. It listens for goal requests and cancel requests, tracks the current vehicle odometry, and executes the navigation action based on the received goals.
 
+#### Subscribed Topics
+
+- `/input/odom` (nav_msgs/Odometry): Receives the odometry data of the robot, including its current position and orientation.
+
+#### Published Topics
+
+- `/output/reference` (geometry_msgs/PoseStamped): Publishes the desired goal pose.
+
 #### Action
 
 - `nav_pose` (navigate_msgs/NavPose): Defines the navigation action, which includes a goal pose and provides feedback on the navigation progress.
@@ -47,13 +59,30 @@ The `NavPoseServer` is an action server node that provides the functionality for
 
 The NavPoseClient node allows external clients to send navigation goal requests to the nav_pose_server action server. It sends the desired goal pose to the server and monitors the navigation progress.
 
+#### Subscribed Topics
+
+- `/input/odom` (nav_msgs/Odometry): Receives the odometry data of the robot, including its current position and orientation.
+- `/input/pose` (geometry_msgs/PoseStamped): Receives the desired vehicle pose.
+
+#### Published Topics
+
+- `/output/cmd_vel` (geometry_msgs/TwistStamped): Send velocity commands to the differential drive controller.
+
+#### Action
+
+- `nav_pose` (navigate_msgs/NavPose): Defines the navigation action, which includes a goal pose and provides feedback on the navigation progress.
+
+### Overview
+An overview of the communication of the navigation stack.
+![Navigation](https://github.com/Luka140/AE4ASM599-ros-gazebo/assets/79090591/76b57611-ed34-443f-8f74-dffd3badc2dc)
+
 ## Usage
 
-To use the `navigate` package, you can launch the nodes individually or include them in your own launch files. Make sure to configure the parameters according to your robot's specifications and navigation requirements.
-
+To use the `navigate` package, you can launch the nodes using the launch file. Make sure to configure the parameters according to your robot's specifications and navigation requirements.
 ```bash
 ros2 launch navigate launch_nav.launch.py
 ```
+The goal pose can be send in RViz.
 
 ## Compatibility
 
