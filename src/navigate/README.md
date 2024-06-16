@@ -74,7 +74,7 @@ The NavPoseClient node allows external clients to send navigation goal requests 
 
 ### Overview
 An overview of the communication of the navigation stack.
-![Navigation](https://github.com/Luka140/AE4ASM599-ros-gazebo/assets/79090591/76b57611-ed34-443f-8f74-dffd3badc2dc)
+![navigate](https://github.com/Luka140/AE4ASM599-ros-gazebo/assets/79090591/4f507ed4-1a38-4590-ae5b-63e8fefd98d6)
 
 ## Usage
 
