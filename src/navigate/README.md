@@ -8,7 +8,7 @@ The navigation stack consists out of three nodes.
 - **NavPoseClient**
 - **NavPoseServer**
   
-### 1. NavController
+### NavController
 
 The `NavController` is responsible for controlling the linear and angular velocities of a differential drive robot based on a reference pose received from a topic. It implements two PID controllers to compute the required velocities for navigation.
 
@@ -33,7 +33,7 @@ The `NavController` is responsible for controlling the linear and angular veloci
 - `max_vel_angular`: Maximum angular velocity allowed for the robot.
 - `tolerance`: Tolerance for position error, used for angle reference when the robot is close to the desired position.
 
-### 2. NavPoseServer
+### NavPoseServer
 
 The `NavPoseServer` is an action server node that provides the functionality for navigating a differential drive robot to a specified pose. It listens for goal requests and cancel requests, tracks the current vehicle odometry, and executes the navigation action based on the received goals.
 
@@ -55,7 +55,7 @@ The `NavPoseServer` is an action server node that provides the functionality for
 - `yaw_tolerance`: Tolerance for orientation error (yaw), used to determine when the goal orientation is reached.
 - `timeout`: Maximum duration allowed for completing the navigation action.
 
-### 3. NavPoseClient
+### NavPoseClient
 
 The NavPoseClient node allows external clients to send navigation goal requests to the nav_pose_server action server. It sends the desired goal pose to the server and monitors the navigation progress.
 
