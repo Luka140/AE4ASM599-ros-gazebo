@@ -18,8 +18,9 @@ class PointcloudToGridNode(Node):
             namespace='',
             parameters = [("qos_best_effort", ""),
                           ("world_frame_id", "odom"),
-                          ('cloud_in_topic', '/cloud'),
+                          ("cloud_in_topic", "/cloud"),
                           ("expansion_size", 80.0), # When a point goes out of bounds, expand the map in this direction by this number of meters
+                          ("lidar_range_lim", 30.)
             ]
         )
 
@@ -27,14 +28,15 @@ class PointcloudToGridNode(Node):
         self.world_frame_id             = self.get_parameter("world_frame_id").get_parameter_value().string_value
         self.expansion_size             = self.get_parameter("expansion_size").get_parameter_value().double_value
         self.cloud_topic                = self.get_parameter("cloud_in_topic").get_parameter_value().string_value 
+        self.lidar_max_range            = self.get_parameter("lidar_range_lim").get_parameter_value().double_value
 
         # Initialise variables 
         self.position = np.array([0.0, 0.0], dtype=float)
 
         # Initialise variables for occupancy grid creation
         self.resolution = .2   # Resolution of occupancy grid (metres per cell)
-        self.x_width      = 75.0 # Width of occupancy grid (metres)
-        self.y_width     = 75.0  # Height of occupancy grid (metres)
+        self.x_width    = 75.0 # Width of occupancy grid (metres)
+        self.y_width    = 75.0  # Height of occupancy grid (metres)
 
         self.grid       = None
         self.grid_topic_name = '/grid'
@@ -43,7 +45,6 @@ class PointcloudToGridNode(Node):
         if self.qos_best_effort:
             adjusted_policy.reliability = ReliabilityPolicy.BEST_EFFORT
         
-        # adjusted_policy.durability = DurabilityPolicy.TRANSIENT_LOCAL
         adjusted_policy.durability = DurabilityPolicy.VOLATILE
 
         self.get_logger().info(f"{adjusted_policy}")
@@ -59,7 +60,7 @@ class PointcloudToGridNode(Node):
         )
 
         # Listen to what the position is at the time of receiving a pointcloud
-        self.tf_buffer = Buffer(cache_time=rclpy.time.Time(seconds=5))
+        self.tf_buffer = Buffer(cache_time=rclpy.time.Time(seconds=10))
         self.tf_listener = TransformListener(self.tf_buffer, self)        
 
         self.get_logger().info(f"Pointcloud to grid node initiated, listening to the '{self.cloud_topic}' topic")
@@ -68,8 +69,9 @@ class PointcloudToGridNode(Node):
 
         try:
             tf_trans = self.tf_buffer.lookup_transform(self.world_frame_id, msg.header.frame_id, rclpy.time.Time(seconds=0), timeout=rclpy.duration.Duration(seconds=3))
+            # tf_trans = self.tf_buffer.lookup_transform(self.world_frame_id, msg.header.frame_id, msg.header.stamp, timeout=rclpy.duration.Duration(seconds=2))
         except (LookupException, ExtrapolationException):
-            self.get_logger().info("Could not lookup transform")
+            self.get_logger().info(f"Could not lookup transform for time: {msg.header.stamp}")
             return
         
         transl = tf_trans.transform.translation
@@ -89,6 +91,12 @@ class PointcloudToGridNode(Node):
             self.grid.data = [-1]*self.grid.info.width*self.grid.info.height
         
         points = pcl2array(msg)
+
+        # Filter out endpoints of the lidar 
+        self.get_logger().info(f"{msg.fields}")
+        points = points[np.where((points[:,0]**2 + points[:,1]**2) < 0.95*(self.lidar_max_range/2)**2)]
+        self.get_logger().info(f"{points.shape}")
+                        
         rotation_matrix = _get_mat_from_quat(np.array([quat.w, quat.x, quat.y, quat.z]))
         translation = np.array([transl.x, transl.y, transl.z])
         global_pcl = np.einsum("bi, ij -> bj", points[:,:3], rotation_matrix.T) + translation
@@ -130,7 +138,6 @@ class PointcloudToGridNode(Node):
         dirs = ['-x', 'x', '-y', 'y']
         assert direction in dirs, f"input 'direction' should be one of {dirs}, not {direction}"
         
-        self.get_logger().info('\n\n\nCHECK\n\n')
         height, width = self.grid.info.height, self.grid.info.width
         grid = np.array(self.grid.data).reshape(height, width)
 
@@ -206,6 +213,7 @@ def pcl2array(pcl_msg: PointCloud2, flatten=False) -> np.ndarray:
     regardless of the pointcloud.
     """
     field_count = len(pcl_msg.fields)
+    
     if pcl_msg.height == 1 or flatten:
         # If the pointcloud is unstructured
         array = np.frombuffer(pcl_msg.data, dtype=np.float32).reshape(-1, field_count)

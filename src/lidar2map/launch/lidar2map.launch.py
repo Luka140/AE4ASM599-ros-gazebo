@@ -38,6 +38,7 @@ def generate_launch_description():
             {'cloud_in_topic': pointcloud_topic},
             {'qos_best_effort': "True"},    
             ('cloud_in_topic', pointcloud_topic),
+            ("lidar_range_lim", "30"),
         ]
     )
 
