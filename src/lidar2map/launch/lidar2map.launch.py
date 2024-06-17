@@ -4,14 +4,20 @@ from launch import LaunchDescription
 
 
 def generate_launch_description():
+    """
+    This launch file launches the nodes from the 'pointcloud_to_laserscan' and 'pointcloud_to_grid' packages, and configures them such
+    that they interact correctly. 
+    """
 
     ld = LaunchDescription()
+
+    bridge = Node(package='ros_gz_bridge', 
+                  executable='parameter_bridge', 
+                  arguments=['/clock@rosgraph_msgs/msg/Clock@ignition.msgs.Clock'])
 
     # Topics over which to interface
     lidar_topic = '/lidar'                  # This is the lidar broadcast topic which is an input to the lidar to pointcloud node
     pointcloud_topic = '/cloud'             # Output of the lidar to pointcloud node and input to the pointcloud to map node
-    height_map_topic = "/height_map"        # Output of topic of the pointcloud to map node
-    intensity_map_topic = "/intensity_map"  # Output of topic of the pointcloud to map node
 
     # The node for converting lidar data to pointcloud2
     pcl2scan = Node(package='pointcloud_to_laserscan',
@@ -24,20 +30,19 @@ def generate_launch_description():
     
     # The node for converting pointclouds to a gridmap
     pcl2grid = Node(
-        package="pointcloud_to_grid",
+        package="pointcloud_to_occupancy_grid",
         executable="pointcloud_to_grid_node",
         name="pc2_to_grid",
         output="screen",
         parameters=[
             {'cloud_in_topic': pointcloud_topic},
-            {'maph_topic_name': height_map_topic},
-            {'mapi_topic_name': intensity_map_topic},
-            {'cell_size': 0.1},
             {'qos_best_effort': "True"},    
+            ('cloud_in_topic', pointcloud_topic),
         ]
     )
 
     
     ld.add_action(pcl2scan)
     ld.add_action(pcl2grid)
+    ld.add_action(bridge)
     return ld

@@ -1,10 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>lidar2map</name>
+  <name>pointcloud_to_occupancy_grid</name>
   <version>0.0.0</version>
-  <description>This package only includes a launch file that launches the nodes from the 'pointcloud_to_laserscan' and 'pointcloud_to_grid' packages, and configures them such
-    that they interact correctly. </description>
+  <description>TODO: Package description</description>
   <maintainer email="luka-groot@hotmail.nl">ros</maintainer>
   <license>Apache-2.0</license>
 
@@ -12,9 +11,6 @@
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
-
-  <depend>pointcloud_to_occupancy_grid</depend>
-  <depend>pointcloud_to_laserscan</depend>
 
   <export>
     <build_type>ament_python</build_type>
