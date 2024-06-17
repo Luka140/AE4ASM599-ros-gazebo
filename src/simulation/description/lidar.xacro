@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" >
 
+    <!-- For some reason this frame does not seem to work correctly -->
     <joint name="laser_joint" type="fixed">
         <parent link="chassis"/>
         <child link="laser_frame"/>
-        <origin xyz="${chassis_length+lidar_viz_cylinder_radius*2} 0 ${chassis_height}" rpy="0 0 0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
     </joint>
 
     <link name="laser_frame">
@@ -12,7 +13,7 @@
     
     <gazebo reference="laser_frame">    
         <sensor name='gpu_lidar' type='gpu_lidar'>"
-            <pose relative_to='lidar_frame'>0 0 0 0 0 0</pose>
+            <pose relative_to='chassis'>${chassis_length+lidar_viz_cylinder_radius*2.1} 0 ${chassis_height*1.2} 0 0 0</pose>
             <topic>lidar</topic>
             <update_rate>${lidar_update_rate}</update_rate>
             <ray>
@@ -31,7 +32,7 @@
                     </vertical>
                 </scan>
                 <range>
-                    <min>0.08</min>
+                    <min>0.1</min>
                     <max>${lidar_max_range}</max>
                     <resolution>0.01</resolution>
                 </range>
