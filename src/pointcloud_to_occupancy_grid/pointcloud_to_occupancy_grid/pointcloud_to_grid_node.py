@@ -38,9 +38,9 @@ class PointcloudToGridNode(Node):
 
         # Initialize variables for occupancy grid creation
         self.resolution = .2   # Resolution of occupancy grid (meters per cell)
-        self.x_width = 75.0    # Width of occupancy grid (meters)
-        self.y_width = 75.0    # Height of occupancy grid (meters)
-        self.grid = None
+        self.x_width    = 75.0    # Width of occupancy grid (meters)
+        self.y_width    = 75.0    # Height of occupancy grid (meters)
+        self.grid       = None
         
         # Adjust QoS policy
         adjusted_policy = qos_profile_system_default
@@ -61,7 +61,7 @@ class PointcloudToGridNode(Node):
         )
 
         # Initialize TF listener
-        self.tf_buffer = Buffer(cache_time=rclpy.time.Time(seconds=10))
+        self.tf_buffer   = Buffer(cache_time=rclpy.time.Time(seconds=10))
         self.tf_listener = TransformListener(self.tf_buffer, self)        
 
         self.get_logger().info(f"Pointcloud to grid node initiated, listening to the '{self.cloud_topic}' topic and publishing on '{self.grid_topic_name}'")
@@ -81,12 +81,12 @@ class PointcloudToGridNode(Node):
         if self.grid is None:
             # Initialize occupancy grid if it's not already initialized
             self.grid = OccupancyGrid()
-            self.grid.header.frame_id = self.world_frame_id
-            self.grid.info.resolution = self.resolution
-            self.grid.info.width = int(self.x_width/self.resolution)
-            self.grid.info.height = int(self.y_width/self.resolution)
-            self.grid.info.origin.position.x = transl.x - self.x_width / 2 
-            self.grid.info.origin.position.y = transl.y - self.y_width / 2
+            self.grid.header.frame_id           = self.world_frame_id
+            self.grid.info.resolution           = self.resolution
+            self.grid.info.width                = int(self.x_width/self.resolution)
+            self.grid.info.height               = int(self.y_width/self.resolution)
+            self.grid.info.origin.position.x    = transl.x - self.x_width / 2 
+            self.grid.info.origin.position.y    = transl.y - self.y_width / 2
 
             # Initialize every cell as unknown
             self.grid.data = [-1] * self.grid.info.width * self.grid.info.height
@@ -175,7 +175,7 @@ class PointcloudToGridNode(Node):
 
 def _get_mat_from_quat(quaternion: np.ndarray) -> np.ndarray:
     """
-    TAKEN STRAIGHT FROM THE ROS2 REPO: 
+    Taken from the ROS2 repo: 
     https://github.com/ros2/geometry2/blob/rolling/tf2_geometry_msgs/src/tf2_geometry_msgs/tf2_geometry_msgs.py
     simply importing it led to some issues because it is not in the setup file. 
 

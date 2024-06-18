@@ -16,8 +16,8 @@ def generate_launch_description():
                   arguments=['/clock@rosgraph_msgs/msg/Clock@ignition.msgs.Clock'])
 
     # Topics over which to interface
-    lidar_topic = '/lidar'                  # This is the lidar broadcast topic which is an input to the lidar to pointcloud node
-    pointcloud_topic = '/cloud'             # Output of the lidar to pointcloud node and input to the pointcloud to map node
+    lidar_topic     = '/lidar'      # This is the lidar broadcast topic which is an input to the lidar to pointcloud node
+    pointcloud_topic = '/cloud'     # Output of the lidar to pointcloud node and input to the pointcloud to map node
 
     # The node for converting lidar data to pointcloud2
     pcl2scan = Node(package='pointcloud_to_laserscan',
@@ -41,8 +41,7 @@ def generate_launch_description():
             ("lidar_range_lim", "30"),
         ]
     )
-
-    
+ 
     ld.add_action(pcl2scan)
     ld.add_action(pcl2grid)
     ld.add_action(bridge)
