@@ -1,3 +1,0 @@
-[submodule "src/pointcloud_to_grid_ros2"]
-	path = src/pointcloud_to_grid_ros2
-	url = https://github.com/Luka140/pointcloud_to_grid_ros2.git
