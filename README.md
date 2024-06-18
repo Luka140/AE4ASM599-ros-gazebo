@@ -14,7 +14,11 @@ This project consists of the following packages:
 
 - **navigate**: Navigation Package for Pose Control of the Robot: This package provides the functionality to navigate the robot to a desired position and orientation within the simulated environment. It includes algorithms and controllers to handle path planning, obstacle avoidance, and precise maneuvering to achieve the specified pose goals.
 
-- **pointcloud_to_occupancy_grid**: This package processes the lidar sensor data collected from the robot and converts it into an occupancy grid. This grid represents the environment in a format suitable for navigation and mapping tasks, facilitating further processing and decision-making by the robot's control system.
+- **pointcloud_to_laserscan**: A third-party package that processes lidar data and converts it to pointclouds.
+
+- **pointcloud_to_occupancy_grid**: This package processes the pointcloud data published by **pointcloud_to_laserscan** and converts it into an occupancy grid. This grid represents the environment in a format suitable for navigation and mapping tasks, facilitating further processing and decision-making by the robot's control system.
+
+- **lidar2map**: This package only contains a launch-file that configures **pointcloud_to_laserscan** and **pointcloud_to_occupancy_grid** to communicate with eachother. 
 
 # Setup
 As an alternative to manually installing ROS2 Humble and Gazebo Fortress, you can use a Docker container to set up your development environment. This approach simplifies the setup process and ensures a consistent environment. This guide will walk you through the steps to use a Dockerfile in Visual Studio Code (VS Code) with the Dev Containers extension.
