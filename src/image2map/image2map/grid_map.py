@@ -52,8 +52,8 @@ class GridMapper(node.Node):
 
         # Initialise variables for occupancy grid creation
         self.resolution = .5   # Resolution of occupancy grid (metres per cell)
-        self.x_width      = 75.0 # Width of occupancy grid (metres)
-        self.y_width     = 75.0  # Height of occupancy grid (metres)
+        self.x_width    = 75.0 # Width of occupancy grid (metres)
+        self.y_width    = 75.0  # Height of occupancy grid (metres)
 
         self.grid       = None
 

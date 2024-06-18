@@ -16,7 +16,19 @@ class PointcloudAggregator(node.Node):
         world coordinates and adds them to an aggregated pointcloud which is published to the 'total_pointcloud' topic
         """
         
-        self.global_frame_id = 'world_demo'
+        self.declare_parameters(
+            namespace='',
+            parameters=[
+                ("global_frame_id", "world_demo"),
+                ("pointcloud_topic", 'reconstruction'), 
+                ("pointcloud_publish_topic", 'total_pointcloud'), 
+            ]
+        )
+        # Should be altered so this is assigned from the launch file
+        self.global_frame_id = self.get_parameter("global_frame_id").get_parameter_value().string_value  
+        self.pointcloud_topic = self.get_parameter("pointcloud_topic").get_parameter_value().string_value  
+        self.pointcloud_publish_topic = self.get_parameter("pointcloud_publish_topic").get_parameter_value().string_value  
+
         self.cluster = False
 
         # This is where the total pointcloud is stored
@@ -28,12 +40,12 @@ class PointcloudAggregator(node.Node):
         # Once this publishes a new reconstruction, self.reconstruction_callback() is called to perform the 
         # coordinate transformations and add it to the total pointcloud.
         self.reconstruction_sub = self.create_subscription(PointCloud2,
-                                                           'reconstruction', 
+                                                           self.pointcloud_topic, 
                                                            self.reconstruction_callback, 
                                                            10)
         
         # The topic to which the aggregated pointcloud is published
-        self.pointcloud_pub = self.create_publisher(PointCloud2, 'total_pointcloud', 10)
+        self.pointcloud_pub = self.create_publisher(PointCloud2, self.pointcloud_publish_topic, 10)
 
         # Track coordinate transformations
         self.tf_buffer = Buffer(cache_time=rclpy.time.Time(seconds=20))
@@ -52,7 +64,7 @@ class PointcloudAggregator(node.Node):
         try:
             tf_trans = self.tf_buffer.lookup_transform(target_frame, cam_frame, time, timeout=rclpy.duration.Duration(seconds=3))
         except (LookupException, ExtrapolationException):
-            self.get_logger().info("Could not lookup transform")
+            self.get_logger().info(f"Could not lookup transform for time: {time}")
             return
 
         # Create a transformation matrix from the transformation message obtained from tf_trans

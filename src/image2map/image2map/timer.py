@@ -20,49 +20,71 @@ class Coordinator(node.Node):
             namespace='',
             parameters = [('world_frame', 'world'),
                           ('baseline', 1.),
-                          ('period', 3.5)] # period in seconds 
+                          ('period', 3.5),  # period in seconds
+                          ('camera_l_topic', '/camera_l'),
+                          ('camera_r_topic', '/camera_r'),
+                          ('camera_info_topic', '/camera_info'),
+                          ('reconstruct_service', 'reconstruct_3d_view'),
+                          ('filter_service', 'filter_pcl'),
+                          ('map_service', 'create_occupancy_map'),
+                          ('filtered_reconstruction_topic', 'filtered_reconstruction'),
+                          ('occupancy_map_topic', 'occupancy_map')]
         )
 
+        # Get parameters
         self.world_frame = self.get_parameter('world_frame').value
         self.baseline = self.get_parameter('baseline').value
-        timer_period = self.get_parameter('period').value # seconds
+        timer_period = self.get_parameter('period').value  # seconds
+        camera_l_topic = self.get_parameter('camera_l_topic').value
+        camera_r_topic = self.get_parameter('camera_r_topic').value
+        camera_info_topic = self.get_parameter('camera_info_topic').value
+        reconstruct_service = self.get_parameter('reconstruct_service').value
+        filter_service = self.get_parameter('filter_service').value
+        map_service = self.get_parameter('map_service').value
+        filtered_reconstruction_topic = self.get_parameter('filtered_reconstruction_topic').value
+        occupancy_map_topic = self.get_parameter('occupancy_map_topic').value
 
+        # Initialize variables
         self.img_l, self.img_r, self.cam_info_l, self.cam_info_r = [None]*4
         self.camera_poses = []
         self.relative_pointclouds = []
         self.call_count = 0
 
+        # Create a callback group
         self.callback_group = ReentrantCallbackGroup()
 
+        # Create subscriptions to camera topics
         self.cam_sub_l = self.create_subscription(Image,
-                                                '/camera_l',
-                                                self.update_img_l,
-                                                10)
+                                                  camera_l_topic,
+                                                  self.update_img_l,
+                                                  10)
         self.cam_sub_r = self.create_subscription(Image,
-                                                '/camera_r',
-                                                self.update_img_r,
-                                                10)
+                                                  camera_r_topic,
+                                                  self.update_img_r,
+                                                  10)
 
         self.cam_sub_info = self.create_subscription(CameraInfo,
-                                        '/camera_info',
-                                        self.update_camera_info,
-                                        10)
+                                                      camera_info_topic,
+                                                      self.update_camera_info,
+                                                      10)
         
-        self.reconstruction_client = self.create_client(ReconstructImage, 'reconstruct_3d_view')
-        self.filter_client = self.create_client(PointcloudTransform, 'filter_pcl')
-        self.map_client = self.create_client(CreateOccupancyMap, 'create_occupancy_map')
+        # Create clients for services
+        self.reconstruction_client = self.create_client(ReconstructImage, reconstruct_service)
+        self.filter_client = self.create_client(PointcloudTransform, filter_service)
+        self.map_client = self.create_client(CreateOccupancyMap, map_service)
 
-        self.filtered_publisher = self.create_publisher(PointCloud2, 'filtered_reconstruction', 10)
-        self.map_publisher = self.create_publisher(OccupancyGrid, 'occupancy_map', 10)
+        # Create publishers
+        self.filtered_publisher = self.create_publisher(PointCloud2, filtered_reconstruction_topic, 10)
+        self.map_publisher = self.create_publisher(OccupancyGrid, occupancy_map_topic, 10)
 
+        # Create a buffer and listener for tf2
         self.tf_buffer = Buffer(cache_time=rclpy.time.Time(seconds=10))
         self.tf_listener = TransformListener(self.tf_buffer, self)
         
+        # Create a timer for periodic task execution
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
-        """
-        todo: make cameras on trigger
-        """
+        # Log initialization
         self.get_logger().info(f"Coordinator node started - time {self.get_clock().now()}")
 
     def timer_callback(self):
@@ -76,6 +98,7 @@ class Coordinator(node.Node):
         """
         self.get_logger().info("Starting reconstruction")
 
+        # Check if all necessary data is received
         if self.img_l is None or self.img_r is None or self.cam_info_l is None or self.cam_info_r is None:
             self.get_logger().info("No camera data received yet - skipping cycle")
             return
@@ -108,6 +131,7 @@ class Coordinator(node.Node):
         self.camera_poses.append(tf_trans)
         
     def recon_done_callback(self, result):
+        # Callback for the reconstruction service response
         res = result.result()
         pointcloud = res.pointcloud
         pose = res.pose
@@ -125,27 +149,29 @@ class Coordinator(node.Node):
         call_map.add_done_callback(self.map_done_callback)
 
     def map_done_callback(self, result):
+        # Callback for the occupancy map service response
         # publish the updated occupancy grid
         self.grid = result.result().occupancygrid
         self.map_publisher.publish(self.grid)
         self.get_logger().info("Published map")
     
     def update_img_l(self, img):
-        # update to the latest image
+        # Callback for updating the left camera image
         self.img_l = img
 
     def update_img_r(self, img):
-        # update to the latest image
+        # Callback for updating the right camera image
         self.img_r = img
 
     def update_camera_info(self, cam_info):
-        # update to the latest camera info
+        # Callback for updating the camera information
         if "right_" in cam_info.header.frame_id:
             self.cam_info_r = cam_info
         else:
             self.cam_info_l = cam_info
 
     def create_reconstruct_msg(self):
+        # Function to create a reconstruction message
         reconstruct_msg = ReconstructImage.Request()
         reconstruct_msg.left_image = self.img_l
         reconstruct_msg.right_image = self.img_r

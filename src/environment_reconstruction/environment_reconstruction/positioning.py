@@ -10,8 +10,15 @@ class Locator(node.Node):
     def __init__(self):
         super().__init__('locator')
 
+        self.declare_parameters(
+            namespace='',
+            parameters=[
+                ("vehicle_name", "Test_car"),
+            ]
+        )
         # Should be altered so this is assigned from the launch file
-        self.vehicle_name = "Test_car"     
+        self.vehicle_name = self.get_parameter("vehicle_name").get_parameter_value().string_value  
+
         ground_truth_pos_sub = self.create_subscription(TFMessage, 
                                                         f'/model/{self.vehicle_name}/pose',
                                                         self.broadcast_transform, 
@@ -23,10 +30,10 @@ class Locator(node.Node):
 
 
     def broadcast_transform(self, tf_msg):
+        """
+        Listen to the message and broadcast transformations as TF transforms
+        """
         for tf in tf_msg.transforms:
-            # The transforms published by gazebo are in a different time than the clock, 
-            # so the time needs to be replaced by current time
-            tf.header.stamp = self.get_clock().now().to_msg()
             self.tf_broadcaster.sendTransform(tf)
         
 

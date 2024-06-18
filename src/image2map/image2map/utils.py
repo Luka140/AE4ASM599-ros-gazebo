@@ -2,8 +2,6 @@ import rclpy
 import numpy as np 
 from sensor_msgs.msg import PointCloud2, PointField
 
-
-
 def create_unstructured_pointcloud(points:np.ndarray, frame_id='world', time=None) -> PointCloud2:
     """
     Creates an unstructured pointcloud from a numpy array of points
@@ -18,14 +16,18 @@ def create_unstructured_pointcloud(points:np.ndarray, frame_id='world', time=Non
     if time is None:
         time  = rclpy.node.Node().get_clock().now().to_msg()
     
+    # Setting timestamp and frame ID
     pointcloud.header.stamp = time
     pointcloud.header.frame_id = frame_id
 
+    # Defining basic dimensions
     base_dims = ['x', 'y', 'z']
     bytes_per_point = 4
+    # Creating PointField for each dimension
     fields = [PointField(name=direction, offset=i * bytes_per_point, datatype=PointField.FLOAT32, count=1) for i, direction in enumerate(base_dims)]
     
     if points.shape[1] == 4:
+        # Adding a field for the cluster label if provided
         # The input datatype is np.int8 but for some reason inserting that here breaks everything :)
         fields.append(PointField(name='c', offset=3 * bytes_per_point, datatype=PointField.FLOAT32, count=1))
 
@@ -38,6 +40,7 @@ def create_unstructured_pointcloud(points:np.ndarray, frame_id='world', time=Non
     pointcloud.row_step = total_points * pointcloud.point_step
     
     pointcloud.is_bigendian = False
+    # Flattening the array and converting to bytes for data
     pointcloud.data = points.flatten().tobytes()
 
     return pointcloud
@@ -57,31 +60,32 @@ def pcl2array(pcl_msg: PointCloud2, flatten=False) -> np.ndarray:
     """
     field_count = len(pcl_msg.fields)
     if pcl_msg.height == 1 or flatten:
-        # If the pointcloud is unstructured
+        # If the pointcloud is unstructured, reshape the array
         array = np.frombuffer(pcl_msg.data, dtype=np.float32).reshape(-1, field_count)
     else:
+        # If the pointcloud is structured, reshape the array accordingly
         array = np.frombuffer(pcl_msg.data, dtype=np.float32).reshape(pcl_msg.height, pcl_msg.width, field_count)
     return array 
 
 
 def euler_from_quaternion(x, y, z, w):
-            """
-            Convert a quaternion into euler angles (roll, pitch, yaw)
-            roll is rotation around x in radians (counterclockwise)
-            pitch is rotation around y in radians (counterclockwise)
-            yaw is rotation around z in radians (counterclockwise)
-            """
-            t0 = +2.0 * (w * x + y * z)
-            t1 = +1.0 - 2.0 * (x * x + y * y)
-            roll_x = np.arctan2(t0, t1)
-        
-            t2 = +2.0 * (w * y - z * x)
-            t2 = +1.0 if t2 > +1.0 else t2
-            t2 = -1.0 if t2 < -1.0 else t2
-            pitch_y = np.arcsin(t2)
-        
-            t3 = +2.0 * (w * z + x * y)
-            t4 = +1.0 - 2.0 * (y * y + z * z)
-            yaw_z = np.arctan2(t3, t4)
-        
-            return roll_x, pitch_y, yaw_z # in radians
+    """
+    Convert a quaternion into euler angles (roll, pitch, yaw)
+    roll is rotation around x in radians (counterclockwise)
+    pitch is rotation around y in radians (counterclockwise)
+    yaw is rotation around z in radians (counterclockwise)
+    """
+    t0 = +2.0 * (w * x + y * z)
+    t1 = +1.0 - 2.0 * (x * x + y * y)
+    roll_x = np.arctan2(t0, t1)
+
+    t2 = +2.0 * (w * y - z * x)
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    pitch_y = np.arcsin(t2)
+
+    t3 = +2.0 * (w * z + x * y)
+    t4 = +1.0 - 2.0 * (y * y + z * z)
+    yaw_z = np.arctan2(t3, t4)
+
+    return roll_x, pitch_y, yaw_z # in radians

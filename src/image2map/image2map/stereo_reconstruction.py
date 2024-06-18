@@ -6,7 +6,7 @@ import cv2 as cv
 import open3d as o3d
 from image2map.utils import create_unstructured_pointcloud
 from cv_bridge import CvBridge
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
 
@@ -14,22 +14,26 @@ class Reconstructor(node.Node):
     def __init__(self):
         super().__init__('reconstructor')
 
+        # Declare parameters
         self.declare_parameters(
             namespace='',
             parameters = [('depth_lim', 30),
                           ('height_lim', 1.5),
-                          ('voxel_downsample_size', 0.1)] 
+                          ('voxel_downsample_size', 0.1),
+                          ('service_name', 'reconstruct_3d_view')] 
         )
 
+        # Get parameters
         self.depth_lim = self.get_parameter('depth_lim').value
         self.height_threshold = self.get_parameter('height_lim').value
         self.voxel_downsample_size = self.get_parameter('voxel_downsample_size').value
+        service_name = self.get_parameter('service_name').value
 
         self.floor_threshold = 0.1
         
         callbackgroup = ReentrantCallbackGroup()
         self.srv = self.create_service(ReconstructImage, 
-                                       'reconstruct_3d_view',
+                                       service_name,  # Service name parameter
                                        self.reconstruct_view,
                                        callback_group=callbackgroup)
     
@@ -50,22 +54,31 @@ class Reconstructor(node.Node):
         cam_info = request.cam_info_l
         baseline = request.baseline
         img_header = request.left_image.header 
+
+        # Load the images into opencv
         img_l, img_r = self.cv_bridge.imgmsg_to_cv2(request.left_image, 'rgb8'), self.cv_bridge.imgmsg_to_cv2(request.right_image, 'rgb8')
         
-
+        # Obtain the disparity image from the two images
         disparity = self.find_disparity_map(img_l, img_r)
         
+        # Load the intrinsic camera matrix into a numpy array
         intrinsic_mat = np.array([cam_info.k[:3], cam_info.k[3:6], cam_info.k[6:]]).astype(np.float32)
 
+        # Calculate the real world XYZ coordinates 
         pc_data = self.find_real_world_coords_bmm(disparity, intrinsic_mat, baseline, img_l.shape)
 
+        # Create the pointcloud message
         reconstruction = create_unstructured_pointcloud(pc_data, frame_id=img_header.frame_id, time=img_header.stamp)
 
         response.pointcloud = reconstruction
+
+        # Add the request pose the to response. This is done such that when multiple calls are handled in parallel, the position from which
+        # a reconstruction is made is not overwritten or mishandled
         response.pose = request.pose
         return response
     
     def find_disparity_map(self, left_image, right_image):
+        # Function to find the disparity map using openCV
         l_img_grey, r_img_grey = cv.cvtColor(left_image, cv.COLOR_RGB2GRAY), cv.cvtColor(right_image, cv.COLOR_RGB2GRAY)
         cv_stereo = cv.StereoBM_create(numDisparities=160, blockSize=25)
         disparity_map = cv_stereo.compute(l_img_grey, r_img_grey).astype(np.float32)/16
@@ -74,7 +87,7 @@ class Reconstructor(node.Node):
     
      
     def find_real_world_coords_bmm(self, disparity_map, intrinsic_mat, cam_spacing, img_shape):
-    
+        # Function to find real-world coordinates
         fx = intrinsic_mat[0,0]
         int_mat_inv = np.linalg.inv(intrinsic_mat)
         depth = fx * cam_spacing / disparity_map
@@ -82,7 +95,7 @@ class Reconstructor(node.Node):
         img_xy = np.indices((img_shape[1], img_shape[0])).reshape((2,-1)).T 
         batched_imgxy1 = np.hstack((img_xy, np.ones((img_shape[0]*img_shape[1],1)))) # Add ones in the z dimension
 
-        # TODO: prune batched imgxyz and depth before this point 
+        # TODO: prune batched imgxyz and depth before this point to save on computational time
         
         batched_imgxyz = np.einsum("ij, ik->ij", batched_imgxy1, depth.T.reshape(-1,1)) # multiply each [x,y,1] with depth
 
@@ -94,8 +107,7 @@ class Reconstructor(node.Node):
         
         # To save computation time, the points can be projected to the floor (or at least a single plane) so they will be grouped by voxel_down_sample later.
         # This means Z should be zero. However due to the rotation below, this is actually still Y in this step (in the camera reference frame). 
-        # The /home/ros/ros2_ws/src/image2map/resourcereason to do this projects at this point is to save on an additional np.asarray() casting and back to open3d
-
+        # The reason to do this projects at this point is to save on an additional np.asarray() casting and back to open3d
         XYZ[:,1] = 0 
 
         # Rotation to transform from typical camera coordinate system to world coordinate conventions
