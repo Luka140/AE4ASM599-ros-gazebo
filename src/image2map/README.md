@@ -118,5 +118,6 @@ Alongside this, open the RViz configuration in `ros2_ws/rviz_configs`.
 ----
 ## Overview
 Below is an overview of how the nodes in this package communicate.
-![image2map drawio](https://github.com/Luka140/AE4ASM599-ros-gazebo/assets/92033464/4efa8d5c-a524-4a08-9436-e1391aac63f5)
+![image2map drawio(2)](https://github.com/Luka140/AE4ASM599-ros-gazebo/assets/92033464/ddbb3cc1-ef14-4dd9-9c69-9364ebcca554)
+
 
