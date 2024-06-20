@@ -197,6 +197,10 @@ class GridMapper(node.Node):
             unit_dir = (point - position) / point_dist
 
             # Check whether there are points coming up that would make it preferable to skip the current one 
+            # A point may be preferable if:
+                # It is not significantly further from the camera position than the current point (controlled by self.point_dist_tolerance)
+                # The angle of a point is sufficiently close to the current angular position of the current point so that we don't skip to a point on the
+                # other side of a gap (controlled by self.angular_tolerance).
             forecast = np.array([(np.linalg.norm((pcl[idx+i]-position)/np.linalg.norm(pcl[idx+i]-position) - unit_dir) < self.angular_tolerance)
                                 and
                                 (np.linalg.norm(pcl[idx+i] - position) < (point_dist * self.point_dist_tolerance))

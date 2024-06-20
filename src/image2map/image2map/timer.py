@@ -25,7 +25,6 @@ class Coordinator(node.Node):
                           ('camera_r_topic', '/camera_r'),
                           ('camera_info_topic', '/camera_info'),
                           ('reconstruct_service', 'reconstruct_3d_view'),
-                          ('filter_service', 'filter_pcl'),
                           ('map_service', 'create_occupancy_map'),
                           ('filtered_reconstruction_topic', 'filtered_reconstruction'),
                           ('occupancy_map_topic', 'occupancy_map')]
@@ -39,7 +38,6 @@ class Coordinator(node.Node):
         camera_r_topic = self.get_parameter('camera_r_topic').value
         camera_info_topic = self.get_parameter('camera_info_topic').value
         reconstruct_service = self.get_parameter('reconstruct_service').value
-        filter_service = self.get_parameter('filter_service').value
         map_service = self.get_parameter('map_service').value
         filtered_reconstruction_topic = self.get_parameter('filtered_reconstruction_topic').value
         occupancy_map_topic = self.get_parameter('occupancy_map_topic').value
@@ -70,7 +68,6 @@ class Coordinator(node.Node):
         
         # Create clients for services
         self.reconstruction_client = self.create_client(ReconstructImage, reconstruct_service)
-        self.filter_client = self.create_client(PointcloudTransform, filter_service)
         self.map_client = self.create_client(CreateOccupancyMap, map_service)
 
         # Create publishers
