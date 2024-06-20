@@ -115,5 +115,8 @@ ign gazebo worlds/tugbot_depot.sdf
 ```
 Alongside this, open the RViz configuration in `ros2_ws/rviz_configs`.
 
+----
 ## Overview
 Below is an overview of how the nodes in this package communicate.
+![image2map drawio](https://github.com/Luka140/AE4ASM599-ros-gazebo/assets/92033464/4efa8d5c-a524-4a08-9436-e1391aac63f5)
+
