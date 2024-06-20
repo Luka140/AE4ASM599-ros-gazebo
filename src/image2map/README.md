@@ -42,6 +42,7 @@ The node uses the following parameters:
 ----
 
 ### Reconstructor
+File: `stereo_reconstruction.py`
 
 The Reconstructor node is a ROS2 node designed for reconstructing 3D point clouds from stereo images using disparity mapping. It utilizes the ROS2 framework along with OpenCV and Open3D libraries to process stereo image pairs and generate a 3D representation of the environment.
 
@@ -60,6 +61,8 @@ The node declares and uses the following parameters:
 
 ----
 ### GridMapper
+File: `grid_map.py`
+
 The GridMapper node is a ROS2 node designed to generate and maintain an occupancy grid map based on incoming point cloud data and the position of a vehicle. This node uses the ROS2 framework and various libraries to process and visualize the occupancy grid.
 
 #### Parameters
