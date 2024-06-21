@@ -21,7 +21,8 @@ class Reconstructor(node.Node):
                 ("left_camera_topic", '/camera_l'), 
                 ("right_camera_topic", '/camera_r'), 
                 ("camera_info_topic", '/camera_info'),       
-                ("published_topic", 'reconstruction'), 
+                ("published_topic", 'reconstruction'),
+                ("recon_service_tag", "reconstruct_3d_view")
             ]
         )
 
@@ -31,6 +32,8 @@ class Reconstructor(node.Node):
         self.cam_r_topic = self.get_parameter("right_camera_topic").get_parameter_value().string_value
         self.cam_info_topic = self.get_parameter("camera_info_topic").get_parameter_value().string_value
         self.published_topic = self.get_parameter("published_topic").get_parameter_value().string_value
+        self.service_topic = self.get_parameter("recon_service_tag").get_parameter_value().string_value
+
         
         # Initialize variables to store images and camera info
         self.img_l, self.img_r, self.cam_info_l, self.cam_info_r = None, None, None, None
@@ -57,7 +60,12 @@ class Reconstructor(node.Node):
             self.update_camera_info,
             10
         )
-        
+
+        # Create service for creating the reconstruction
+        self.srv = self.create_service(Reconstruct, 
+                               self.service_topic,
+                               self.reconstruct_view)
+
         # Create the publisher for the reconstructed point cloud
         self.pub = self.create_publisher(
             PointCloud2, 
