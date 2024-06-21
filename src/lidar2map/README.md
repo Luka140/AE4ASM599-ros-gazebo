@@ -1,9 +1,10 @@
-## Launch file
-This package only contains a launch file that launches nodes from
+
+This package only contains a launch file that launches nodes from:
 - **pointcloud_to_laserscan**
 - **pointcloud_to_occupancy_grid**
-
 This launches a full pipeline that listens to a lidar LaserScan topic and publishes a dynamically growing gridmap.
+
+## Launch file
 To launch the pipeline use:
 ```
 source /opt/ros/humble/setup.bash
