@@ -3,7 +3,7 @@ import rclpy.node as node
 from sensor_msgs.msg import Image, PointCloud2, CameraInfo
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import Pose
-from interfaces.srv import ReconstructImage, PointcloudTransform, CreateOccupancyMap
+from interfaces.srv import ReconstructImage, CreateOccupancyMap
 
 from tf2_ros import TransformListener, LookupException, ExtrapolationException
 from tf2_ros.buffer import Buffer

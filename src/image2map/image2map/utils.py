@@ -9,6 +9,7 @@ def create_unstructured_pointcloud(points:np.ndarray, frame_id='world', time=Non
         points: [N,3/4] numpy array containing the points. 
                 If [N,3] this should be [x y z], if [N,4] this is [x y z c] where c is the cluster label
         frame_id: the frame id of the pointcloud
+        time: the timestamp that the PointCloud2 message should have 
     """
     
     pointcloud = PointCloud2()
