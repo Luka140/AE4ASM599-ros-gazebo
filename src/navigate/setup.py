@@ -27,6 +27,8 @@ setup(
             'nav_pose_server = navigate.nav_pose_server:main',
             'nav_pose_client = navigate.nav_pose_client:main',
             'nav_controller = navigate.nav_controller:main',
+            'nav_controller_avoidance = navigate.nav_controller_avoidance:main',
+            'nav_pose_avoidance_server = navigate.nav_pose_avoidance_server:main'
         ],
     },
 )

@@ -28,10 +28,10 @@ import numpy as np
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile
+from rclpy.qos import DurabilityPolicy, qos_profile_system_default, ReliabilityPolicy
 
 from geometry_msgs.msg import TwistStamped, Pose, PoseStamped
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, OccupancyGrid
 
 def euler_from_quaternion(x, y, z, w):
     """
@@ -69,7 +69,7 @@ def angle_wrapping(angle):
 class NavController(Node):
     
     def __init__(self):
-        super().__init__("nav_controller_node")
+        super().__init__("nav_controller_avoidance_node")
 
         # Initialise controller parameters.
         self.declare_parameters(
@@ -78,26 +78,25 @@ class NavController(Node):
                 ('kp_linear', 1.0),
                 ('ki_linear', 0.0),
                 ('kd_linear', 0.2),
-                ('kp_angular', 5.0),
-                ('ki_angular', 0.4),
-                ('kd_angular', 2.5),
+                ('kp_angular', 1.0),
+                ('ki_angular', 0.2),
+                ('kd_angular', 0.0),
                 ('max_vel_linear', 2.0),
-                ('max_vel_angular', 10.0),
-                ('tolerance', 0.15)
+                ('max_vel_angular', 5.0),
+                ('tolerance', 0.15),
+                ('obstacle_avoidance_radius', 5.0),
+                ('obstacle_influence_gain', 1250.0)
             ]
         )
         
-        # Quality of service
-        qos_profile = QoSProfile(
-            depth=1
-        )
-
+        qos_profile_grid = qos_profile_system_default
+        qos_profile_grid.reliability = ReliabilityPolicy.BEST_EFFORT
         # Subscribe to trajectory information
         self.reference_sub = self.create_subscription(
             PoseStamped, 
             '/input/pose', 
             self.reference_callback, 
-            qos_profile
+            qos_profile_system_default
             )
         
         # Subscribe to vehicle odometry for feedback
@@ -105,20 +104,30 @@ class NavController(Node):
             Odometry,
             '/input/odom',
             self.feedback_callback,
-            qos_profile
+            qos_profile_system_default
             )
         
+        # Subscribe to the occupancy grid
+        self.grid_sub = self.create_subscription(
+            OccupancyGrid,
+            '/input/grid',
+            self.grid_callback,
+            qos_profile_system_default
+            )
+
         # Publish twist command
         self.command_vel_pub = self.create_publisher(
             TwistStamped,
             '/output/cmd_vel',
-            qos_profile
+            qos_profile_system_default
             )
 
-        # Store reference pose
+        # Initialise controller variables
         self.pose_ref = None
+        self.occupancy_grid = None
+        self.grid_info = None
 
-        # Store PID values
+        # Store PID terms
         self.delta_time = 0
         self.prev_time = self.get_clock().now().nanoseconds
 
@@ -137,7 +146,7 @@ class NavController(Node):
         self.delta_time = (current_time - self.prev_time)*1e-9
         self.prev_time = current_time
 
-        # Exit callback when there is no pose information known
+        # Exit callback when there is no reference pose information known
         if self.pose_ref is None:
             return
         pose = msg.pose.pose
@@ -161,6 +170,11 @@ class NavController(Node):
         """
         self.pose_ref = msg.pose
 
+    def grid_callback(self, msg: OccupancyGrid) -> None:
+        """Callback to keep track of the latest occupancy grid"""
+        self.occupancy_grid = np.array(msg.data).reshape((msg.info.height, msg.info.width))
+        self.grid_info = msg.info
+
     def linear_velocity(self, pose: Pose) -> None:
         """pid controller for linear control"""
         # Get parameters
@@ -170,11 +184,14 @@ class NavController(Node):
 
         max_vel_linear = self.get_parameter("max_vel_linear").value
 
-        # Get reference position.
+        # Get current and reference position.
         position_ref = np.array([self.pose_ref.position.x, self.pose_ref.position.y])
-
-        # Get current position.
         position = np.array([pose.position.x, pose.position.y])
+
+        # Get obstacle avoidance repulsion
+        obstacle_avoidance = self.obstacle_avoidance_vector(position)
+
+        # Calculate position error.
         position_error = position_ref - position
 
         # Get current angle.
@@ -182,9 +199,10 @@ class NavController(Node):
 
         # Transform to body frame
         delta_body = np.array([[np.cos(yaw), np.sin(yaw)],[-np.sin(yaw), np.cos(yaw)]])@position_error.T
+        obstacle_body = np.array([[np.cos(yaw), np.sin(yaw)],[-np.sin(yaw), np.cos(yaw)]])@obstacle_avoidance.T
 
         # Command linear velocity
-        error = delta_body[0]
+        error = max(min(5.0, delta_body[0]), -5.0) + obstacle_body[0]
         p_term_linear = kp_linear * error
         d_term_linear = kd_linear * (error - self.d_error_linear)/self.delta_time
         self.i_term_linear += ki_linear * error * self.delta_time
@@ -212,9 +230,13 @@ class NavController(Node):
         position = np.array([pose.position.x, pose.position.y])
         yaw = euler_from_quaternion(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w)[2]
 
+        # Get obstacle avoidance repulsion
+        obstacle_avoidance = self.obstacle_avoidance_vector(position)
+
         # Relate position error to reference angle 
         position_error = position_ref - position
-        yaw_ref = np.arctan2(position_error[1], position_error[0])
+        error = position_error + obstacle_avoidance
+        yaw_ref = np.arctan2(error[1], error[0])
 
         # aim for reference orientation when close
         if np.linalg.norm(position_error) < self.get_parameter("tolerance").value:
@@ -234,6 +256,38 @@ class NavController(Node):
         yaw_rate = max(min(yaw_rate, max_vel_angular), -max_vel_angular)
 
         return yaw_rate
+    
+    def obstacle_avoidance_vector(self, position):
+        if self.occupancy_grid is None:
+            self.get_logger().info('No grid found')
+            return np.array([0.0, 0.0])
+        
+        # Get parameters
+        obstacle_avoidance_radius = self.get_parameter('obstacle_avoidance_radius').value
+        influence_gain = self.get_parameter('obstacle_influence_gain').value
+
+        # Convert position to grid coordinates
+        grid_origin = np.array([self.grid_info.origin.position.x, self.grid_info.origin.position.y])
+        grid_position = ((position - grid_origin)/self.grid_info.resolution).astype(int)
+
+        obstacle_vector = np.array([0.0, 0.0]).astype(float)
+        grid_radius = int(obstacle_avoidance_radius/self.grid_info.resolution)
+
+        for i in range(-grid_radius, grid_radius + 1):
+            for j in range(-grid_radius, grid_radius +1 ):
+                grid_index = grid_position + np.array([i, j])
+
+                if 0 <= grid_index[0] < self.grid_info.width and 0 <= grid_index[1] < self.grid_info.height:
+                    self.get_logger().info(f"{self.grid_position * self.grid_info.resolution}")
+                    if self.occupancy_grid[grid_index[0], grid_index[1]] >= 50:
+                        self.get_logger().info("found obj")
+                        dist = np.linalg.norm(grid_index - grid_position)
+                        if dist > 0:
+                            influence = influence_gain / dist**2
+                            obstacle_vector += -influence * (grid_index - grid_position)/dist
+
+        self.get_logger().info(f"Vector: {obstacle_vector}")
+        return obstacle_vector
     
 def main(args=None):
     rclpy.init(args=args)

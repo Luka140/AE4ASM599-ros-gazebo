@@ -37,7 +37,7 @@ class PointcloudToGridNode(Node):
         self.position = np.array([0.0, 0.0], dtype=float)
 
         # Initialize variables for occupancy grid creation
-        self.resolution = .2   # Resolution of occupancy grid (meters per cell)
+        self.resolution = .05   # Resolution of occupancy grid (meters per cell)
         self.x_width    = 75.0    # Width of occupancy grid (meters)
         self.y_width    = 75.0    # Height of occupancy grid (meters)
         self.grid       = None
