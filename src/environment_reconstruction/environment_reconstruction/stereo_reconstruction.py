@@ -77,12 +77,12 @@ class Reconstructor(node.Node):
 
     def update_img_l(self, img):
         """Callback to update left camera image."""
-        self.image_time = self.get_clock().now().to_msg()
+        self.image_time = img.header.stamp
         self.img_l = self.cv_bridge.imgmsg_to_cv2(img, 'rgb8')
 
     def update_img_r(self, img):
         """Callback to update right camera image."""
-        self.image_time = self.get_clock().now().to_msg()
+        self.image_time = img.header.stamp
         self.img_r = self.cv_bridge.imgmsg_to_cv2(img, 'rgb8')
 
     def update_camera_info(self, cam_info):
@@ -131,7 +131,7 @@ class Reconstructor(node.Node):
         pc_data = self.find_real_world_coords_bmm(disparity, intrinsic_mat, cam_spacing)
 
         # Create and publish point cloud message
-        reconstruction = create_pointcloud_msg(pc_data, self.image_time, self.img_l.shape, self.img_l.header.frame_id)
+        reconstruction = create_pointcloud_msg(pc_data, self.image_time, self.img_l.shape, self.cam_info_l.header.frame_id)
         self.pub.publish(reconstruction)
         response.reconstruction = reconstruction
         return response
