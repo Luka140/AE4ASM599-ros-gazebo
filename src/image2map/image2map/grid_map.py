@@ -20,7 +20,7 @@ class GridMapper(node.Node):
 
         self.declare_parameters(
             namespace='',
-            parameters = [('world_frame', 'worro;jklasdf;jklasdf;jklld'),
+            parameters = [('world_frame', 'world'),
                           ('horizontal_fov', np.pi/3),
                           ('camera_depth_lim', 30.),
                           ('point_distance_tolerance', 1.2),
