@@ -26,45 +26,41 @@ To see the published gridmaps and pointclouds can be seen in RViz. An RViz confi
 
 
 ## 3D Reconstruction
-The environment_reconstruction package contains code that takes in two images from a stereo camera, and reconstructs the 3D environment as a pointcloud. 
+The environment_reconstruction package contains code that takes in two images from a stereo camera and reconstructs the 3D environment as a point cloud. 
 
-To use it, open the simulation using
-```
-export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:$HOME/ros2_ws/gazebo_files/
-ign gazebo worlds/tugbot_depot.sdf
-```
-
-In a new file open RViz2:
-```
-source /opt/ros/humble/setup.bash
-rviz2 
-```
-In this window go to 'file' -> 'open config' and open '3d_reconstruction_test.rviz'
-
-In another window, start up the reconstruction node using
+In one window, start up the reconstruction node using
 ```
 source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 launch environment_reconstruction launch_3d_reconstruction.launch.py
 ```
 
-The vehicle can be driven around using the arrow keys. Pressing "S" stops the vehicle. For this to work, the 'key publisher' in Gazebo needs to be enabled. 
+Open the simulation in another window using
+```
+export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:$HOME/ros2_ws/gazebo_files/
+ign gazebo worlds/tugbot_depot.sdf
+```
 
-To request a 3D reconstruction either press:
-    "C" or press "Enter"
-
-In a new console window a manual request can also be made to reconstruct the environment. Make sure that the gazebo simulation is actually running at this point, and not paused.
+In a new window open RViz2:
 ```
 source /opt/ros/humble/setup.bash
-source install/setup.bash
-ros2 service call /reconstruct_3d_view interfaces/srv/Reconstruct "{camera_spacing: 1}"
+rviz2 
 ```
+In this window go to 'file' -> 'open config' and open '3d_reconstruction_test.rviz'
 
-The pointcloud and images should show up in the RViz2 window. 
+
+The vehicle can be driven around using the arrow keys. Pressing "S" stops the vehicle. For this to work, the 'key publisher' in Gazebo needs to be enabled. 
+
+- To request a 3D reconstruction press "Enter"
+- To request clustering press "C"
+- To request filtering press "F"
+
+
+The point cloud and images should show up in the RViz2 window. 
 
 
 ## Pathfollowing
-This contains a node that performs simple waypoint following missions while avoiding obstacles. The algorithm is not robust and the waypoints may not be accurate to the simulated world due to error buildup in odometry. 
+This contains a node that performs simple waypoint-following missions while avoiding obstacles. The algorithm is not robust and the waypoints may not be accurate to the simulated world due to error buildup in odometry. 
 
 To use it open the gazebo file using:
 ```
