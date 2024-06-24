@@ -14,17 +14,11 @@ def generate_launch_description():
                              '/camera_r@sensor_msgs/msg/Image@ignition.msgs.Image'])
 
     
-    # lidar_listener = Node(
-    #     package="lidar_node_py",
-    #     executable="lidar_listener"
-    # )
-
     pathfinder = Node(
         package="pathfollowing",
         executable="pathfinder"
     )
 
     ld.add_action(bridge)
-    # ld.add_action(lidar_listener)
     ld.add_action(pathfinder)
     return ld
