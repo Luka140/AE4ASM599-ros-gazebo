@@ -31,15 +31,67 @@ The node uses the following parameters:
 
 #### Subscriptions
 
-- /camera_l (sensor_msgs/Image): Subscription to the left camera image.
-- /camera_r (sensor_msgs/Image): Subscription to the right camera image.
-- /camera_info (sensor_msgs/CameraInfo): Subscription to the camera information.
+- Left Camera Image Subscription
+  
+        Topic: Defined by the camera_l_topic parameter, e.g., /camera_l
+        Message Type: sensor_msgs.msg.Image
+        Callback: update_img_l
+
+- Right Camera Image Subscription
+  
+        Topic: Defined by the camera_r_topic parameter, e.g., /camera_r
+        Message Type: sensor_msgs.msg.Image
+        Callback: update_img_r
+
+- Camera Info Subscription
+  
+        Topic: Defined by the camera_info_topic parameter, e.g., /camera_info
+        Message Type: sensor_msgs.msg.CameraInfo
+        Callback: update_camera_info
+
+#### Services
+
+- Reconstruct Image Service Client
+        
+        Service Name: set by the 'reconstruct_service' parameter (dafault is 'reconstruct_3d_view').
+        Type: interfaces.srv.ReconstructImage
+        Function: Invokes the reconstruction service to generate a 3D point cloud.
+        Callback: recon_done_callback handles the response and publishes the filtered point cloud.
+
+- Create Occupancy Map Service Client
+        
+        Service Name: set by the 'map_service' parameter (default is 'create_occupancy_map').
+        Type: interfaces.srv.CreateOccupancyMap
+        Function: Invokes the service to update an occupancy grid map based on the reconstructed point cloud.
+        Callback: map_done_callback handles the response and publishes the updated occupancy grid.
 
 #### Publishers
 
-- filtered_reconstruction (sensor_msgs/PointCloud2): Publishes the filtered point cloud.
-- occupancy_map (nav_msgs/OccupancyGrid): Publishes the occupancy map.
+- Filtered Reconstruction Publisher
+  
+        Topic: Defined by the filtered_reconstruction_topic parameter, e.g., filtered_reconstruction
+        Message Type: sensor_msgs.msg.PointCloud2
+        Function: Publishes the filtered point cloud received from the reconstruction service.
 
+- Occupancy Map Publisher
+  
+        Topic: Defined by the occupancy_map_topic parameter, e.g., occupancy_map
+        Message Type: nav_msgs.msg.OccupancyGrid
+        Function: Publishes the updated occupancy grid map generated from the reconstructed data.
+
+#### TF2 Usage
+
+- TF2 Buffer and Listener: Manages transforms using tf2_ros.Buffer and tf2_ros.TransformListener to obtain the current pose relative to the world frame (world_frame parameter).
+
+#### Timer Callback
+
+- Timer Callback: Periodically triggers the reconstruction pipeline:
+  
+        Collects the latest images and camera info.
+        Obtains the current pose using TF2 transforms.
+        Invokes the reconstruction service (reconstruction_client).
+        Publishes the filtered point cloud and requests an occupancy map update using the respective services.
+        
 ----
 
 ### Reconstructor
@@ -58,8 +110,12 @@ The node declares and uses the following parameters:
 - service_name: Name of the ROS service for reconstructing 3D views. Default is reconstruct_3d_view.
 
 #### Services
-
-- reconstruct_3d_view (interfaces/srv/ReconstructImage): Service for receiving stereo image pairs and reconstructing a 3D point cloud.
+- ReconstructImage Service Server
+  
+        Service Name: Determined by the parameter service_name (default is 'reconstruct_3d_view').
+        Message Type: interfaces.srv.ReconstructImage
+        Function: Handles requests to reconstruct a 3D point cloud from stereo images.
+        Callback: reconstruct_view
 
 ----
 ### GridMapper
@@ -99,8 +155,13 @@ The node declares and uses the following parameters:
 
 #### Services
 
-- create_occupancy_map (interfaces/srv/CreateOccupancyMap): Service for creating and updating the occupancy grid based on incoming point cloud data. This is used to interact with **Coordinator**.
-
+- CreateOccupancyMap Service Server
+  
+        Service Name: 'create_occupancy_map'
+        Type: interfaces.srv.CreateOccupancyMap
+        Function: Handles requests to update an occupancy grid map based on point cloud data.
+        Callback: update_map
+        Purpose: Accepts requests containing a pose and a point cloud, processes the point cloud data to update an occupancy grid map, and returns the updated map in the response.
 ----
 
 ### Locator
@@ -115,7 +176,22 @@ The node uses the following parameter:
 - vehicle_path: The ROS parameter that specifies the path to the vehicle model. Default is /model/Test_car.
 
 #### Subscriptions
-- <vehicle_path>/pose (tf2_msgs/TFMessage): Subscribes to the ground truth pose topic of the specified vehicle model. The actual topic name is formed by concatenating the vehicle_path parameter with /pose.
+
+- Ground Truth Position Subscription
+  
+        Topic: Specified by the vehicle_name parameter, formatted as /model/{vehicle_name}/pose.
+        Message Type: tf2_msgs.msg.TFMessage
+        Callback: broadcast_transform
+
+#### Publishers
+
+- Transform Broadcaster
+  
+        Type: tf2_ros.TransformBroadcaster
+
+- Static Transform Broadcaster
+  
+        Type: tf2_ros.StaticTransformBroadcaster
 
 ----
 ## Launching the nodes
