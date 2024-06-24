@@ -3,6 +3,36 @@ This package contains various nodes to reconstruct a point cloud from a stereo i
 It is not a streamlined product but rather the result of experimentation for the sake of learning. The **image2map** package
 shows a more direct pipeline, based on some of the nodes in this package. 
 
+## Usage
+
+
+In one window, start up the reconstruction node using
+```
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch environment_reconstruction launch_3d_reconstruction.launch.py
+```
+
+Open the simulation in another window using
+```
+export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:$HOME/ros2_ws/gazebo_files/
+ign gazebo worlds/tugbot_depot.sdf
+```
+
+In a new window open RViz2:
+```
+source /opt/ros/humble/setup.bash
+rviz2 
+```
+In this window go to 'file' -> 'open config' and open '3d_reconstruction_test.rviz'
+
+
+The vehicle can be driven around using the arrow keys. Pressing "S" stops the vehicle. For this to work, the 'key publisher' in Gazebo needs to be enabled. 
+
+- To request a 3D reconstruction press "Enter"
+- To request clustering press "C"
+- To request filtering press "F"
+
 
 ## Nodes
 
