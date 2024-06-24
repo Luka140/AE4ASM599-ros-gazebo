@@ -21,6 +21,51 @@ This node acts as a client for point cloud clustering and filtering services. It
 - clustered_pcl_topic: Topic name for publishing clustered point cloud.
 - filtered_pcl_topic: Topic name for publishing filtered point cloud.
 
+#### Subscriptions
+
+- Cluster Trigger Subscription
+  
+        Topic: Specified by the cluster_trigger_topic parameter (default is "cluster_trigger").
+        Message Type: std_msgs.msg.Empty
+        Callback: call_cluster
+
+- Filter Trigger Subscription
+  
+        Topic: Specified by the filter_trigger_topic parameter (default is "filter_trigger").
+        Message Type: std_msgs.msg.Empty
+        Callback: call_filter
+
+- PointCloud2 Subscription
+  
+        Topic: Specified by the pointcloud_topic parameter (default is "total_pointcloud").
+        Message Type: sensor_msgs.msg.PointCloud2
+        Callback: set_pointcloud
+
+#### Publishers
+
+- Clustered PointCloud2 Publisher
+  
+        Topic: Specified by the clustered_pcl_topic parameter (default is "clustered_reconstruction").
+        Message Type: sensor_msgs.msg.PointCloud2
+
+- Filtered PointCloud2 Publisher
+  
+        Topic: Specified by the filtered_pcl_topic parameter (default is "filtered_reconstruction").
+        Message Type: sensor_msgs.msg.PointCloud2
+
+#### Services
+
+- Cluster Service Client
+  
+        Service Name: Specified by the cluster_service parameter (default is "cluster_reconstruction").
+        Service Type: interfaces.srv.PointcloudTransform
+
+- Filter Service Client
+  
+        Service Name: Specified by the filter_service parameter (default is "filter_pcl").
+        Service Type: interfaces.srv.PointcloudTransform
+----
+
 ### Clustering
 
 File: `clustering.py`
@@ -30,6 +75,14 @@ This node provides a service for clustering a point cloud using the DBSCAN algor
 #### Parameters:
 - cluster_service: Service name for clustering.
 
+#### Services
+- Cluster Service
+
+        Service Name: Specified by the cluster_service parameter (default is "cluster_reconstruction").
+        Service Type: interfaces.srv.PointcloudTransform
+        Callback: cluster
+----
+
 ### Pointcloud Filtering
 
 File: `filter_pcl.py`
@@ -38,6 +91,14 @@ This node provides a service for filtering a point cloud using statistical outli
 
 #### Parameters:
 - filter_service: Service name for filtering.
+
+#### Services
+- Filter Service
+
+      Service Name: Specified by the filter_service parameter (default is "filter_pcl").
+      Service Type: interfaces.srv.PointcloudTransform
+      Callback: filter 
+----
 
 ### Keyboard Capture
 
@@ -52,6 +113,41 @@ This node listens for keyboard inputs to trigger different actions such as recon
 - filter_trigger_topic: Topic name for filter trigger.
 - cmd_vel_topic: Topic name for vehicle command velocity.
 
+  
+#### Subscriptions
+
+- Keyboard Keypress Subscription
+  
+        Topic: Specified by the keypress_topic parameter (default is "keyboard/keypress").
+        Message Type: std_msgs.msg.Int32
+        Callback: capture_environment
+
+#### Publishers
+
+- Cluster Trigger Publisher
+  
+        Topic: Specified by the cluster_trigger_topic parameter (default is "cluster_trigger").
+        Message Type: std_msgs.msg.Empty
+
+- Filter Trigger Publisher
+  
+        Topic: Specified by the filter_trigger_topic parameter (default is "filter_trigger").
+        Message Type: std_msgs.msg.Empty
+
+- Command Velocity Publisher
+  
+        Topic: Specified by the cmd_vel_topic parameter (default is "cmd_vel").
+        Message Type: geometry_msgs.msg.Twist
+
+#### Services
+
+- Reconstruction Service Client
+  
+        Service Name: Specified by the reconstruct_service parameter (default is "reconstruct_3d_view").
+        Service Type: interfaces.srv.Reconstruct
+
+----
+
 ### Pointcloud Aggregation
 
 File: `pointcloud_aggregation.py`
@@ -63,6 +159,25 @@ This node aggregates multiple point clouds into a single point cloud. It listens
 - pointcloud_topic: Topic name for incoming point clouds.
 - pointcloud_publish_topic: Topic name for the aggregated pointcloud.
 
+#### Subscriptions
+- Reconstruction Subscription
+  
+        Topic: Specified by the pointcloud_topic parameter (default is "reconstruction").
+        Message Type: sensor_msgs.msg.PointCloud2
+        Callback: reconstruction_callback
+
+#### Publishers
+- Aggregated Point Cloud Publisher
+  
+        Topic: Specified by the pointcloud_publish_topic parameter (default is "total_pointcloud").
+        Message Type: sensor_msgs.msg.PointCloud2
+
+
+#### How it works
+The node listens to the points published by the Stereo Reconstruction node. It then finds the TF2 transform from the world frame to the relative frame the point cloud is in. The points are then set to the world frame using this transform and added to the collection of previously transformed points. All these points are collected into a large point cloud which is then published. 
+
+----
+   
 ### Positioning
 File: `positioning.py`
 
@@ -75,12 +190,24 @@ The node uses the following parameter:
 - vehicle_path: The ROS parameter that specifies the path to the vehicle model. Default is /model/Test_car.
 
 #### Subscriptions
-- <vehicle_path>/pose (tf2_msgs/TFMessage): Subscribes to the ground truth pose topic of the specified vehicle model. The actual topic name is formed by concatenating the vehicle_path parameter with /pose.
 
+- Ground Truth Position Subscription
+  
+        Topic: Specified by the vehicle_name parameter, formatted as /model/{vehicle_name}/pose.
+        Message Type: tf2_msgs.msg.TFMessage
+        Callback: broadcast_transform
 
-#### How it works
-The node listens to the points published by the Stereo Reconstruction node. It then finds the TF2 transform from the world frame to the relative frame the point cloud is in. The points are then set to the world frame using this transform and added to the collection of previously transformed points. All these points are collected into a large point cloud which is then published. 
+#### Publishers
 
+- Transform Broadcaster
+  
+        Type: tf2_ros.TransformBroadcaster
+
+- Static Transform Broadcaster
+  
+        Type: tf2_ros.StaticTransformBroadcaster
+
+----
 
 ### Stereo Reconstruction
 
@@ -101,17 +228,39 @@ The node allows configuration through several parameters:
 
 #### Subscriptions
 
-- Left Camera Images: Subscribed to the topic specified by left_camera_topic.
-- Right Camera Images: Subscribed to the topic specified by right_camera_topic.
-- Camera Info: Subscribed to the topic specified by camera_info_topic.
+- Left Camera Image Subscription
+  
+        Topic: Defined by the left_camera_topic parameter, e.g., /camera_l
+        Message Type: sensor_msgs.msg.Image
+        Callback: update_img_l
 
-#### Publisher
+- Right Camera Image Subscription
+  
+        Topic: Defined by the right_camera_topic parameter, e.g., /camera_r
+        Message Type: sensor_msgs.msg.Image
+        Callback: update_img_r
 
-- Reconstructed Point Cloud: Publishes the reconstructed 3D point cloud to the topic specified by published_topic.
+- Camera Info Subscription
+  
+        Topic: Defined by the camera_info_topic parameter, e.g., /camera_info
+        Message Type: sensor_msgs.msg.CameraInfo
+        Callback: update_camera_info
 
-#### Service
+#### Services
 
-- Reconstruct 3D View: A service that triggers the reconstruction of the 3D view from the stereo images. The service tag is specified by the recon_service_tag parameter.
+- Reconstruct Service
+  
+        Type: interfaces.srv.Reconstruct
+        Callback: reconstruct_view
+
+#### Publishers
+
+- Reconstructed Point Cloud Publisher
+  
+        Topic: Defined by the published_topic parameter, e.g., reconstruction
+        Message Type: sensor_msgs.msg.PointCloud2
+        Function: Publishes the reconstructed point cloud using create_pointcloud_msg
+
 
 #### How It Works
 
@@ -122,6 +271,7 @@ The node allows configuration through several parameters:
 - Point Cloud Publishing: The reconstructed 3D point cloud is published to the specified topic.
 - Reconstruction Service: The service can be called to perform the reconstruction process and obtain the 3D point cloud.
 
+----
 
 ## Other files
 ### `utils.py`
