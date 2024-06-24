@@ -17,7 +17,7 @@ This node acts as a client for point cloud clustering and filtering services. It
 - filter_service: Service name for filtering.
 - cluster_trigger_topic: Topic name for cluster trigger.
 - filter_trigger_topic: Topic name for filter trigger.
-- pointcloud_topic: Topic name for incoming point cloud.
+- pointcloud_topic: Topic name for the incoming point cloud.
 - clustered_pcl_topic: Topic name for publishing clustered point cloud.
 - filtered_pcl_topic: Topic name for publishing filtered point cloud.
 
@@ -56,11 +56,11 @@ This node listens for keyboard inputs to trigger different actions such as recon
 
 File: `pointcloud_aggregation.py`
 
-This node aggregates multiple point clouds into a single point cloud. It listens to a topic for incoming point clouds, transforms them to the global frame, and publishes the aggregated point cloud.
+This node aggregates multiple point clouds into a single point cloud. It listens to a topic for incoming point clouds, transforms them into the global frame, and publishes the aggregated point cloud.
 
 #### Parameters:
-- global_frame_id: The global frame to transform pointclouds into.
-- pointcloud_topic: Topic name for incoming pointclouds.
+- global_frame_id: The global frame to transform point clouds into.
+- pointcloud_topic: Topic name for incoming point clouds.
 - pointcloud_publish_topic: Topic name for the aggregated pointcloud.
 
 ### Positioning
@@ -79,7 +79,7 @@ The node uses the following parameter:
 
 
 #### How it works
-The node listens to the pointclouds published by the Stereo Reconstruction node. It then finds the TF2 transform from the world frame to the relative frame the point cloud is in. The points are then set to the world frame using this transform and added to the collection of previously transformed points. All these points are colleced into a large point cloud which is then published. 
+The node listens to the points published by the Stereo Reconstruction node. It then finds the TF2 transform from the world frame to the relative frame the point cloud is in. The points are then set to the world frame using this transform and added to the collection of previously transformed points. All these points are collected into a large point cloud which is then published. 
 
 
 ### Stereo Reconstruction
@@ -125,21 +125,22 @@ The node allows configuration through several parameters:
 
 ## Other files
 ### `utils.py`
-This Python module provides utility functions for working with ROS2 PointCloud2 messages, specifically for creating unstructured pointclouds from numpy arrays and converting PointCloud2 messages back to numpy arrays.
+This Python module provides utility functions for working with ROS2 PointCloud2 messages, specifically for creating unstructured point clouds from NumPy arrays and converting PointCloud2 messages back to NumPy arrays.
+
 Features
-- create_unstructured_pointcloud: Converts a numpy array of points to a ROS2 PointCloud2 message.
+- create_unstructured_pointcloud: Converts a NumPy array of points to a ROS2 PointCloud2 message.
 - pcl2array: Converts a ROS2 PointCloud2 message to a numpy array.
 
 
 #### Function Descriptions
 `create_unstructured_pointcloud(points: np.ndarray, frame_id='world', time=None) -> PointCloud2`
 
-Creates an unstructured pointcloud from a numpy array of points.
+Creates an unstructured point cloud from a NumPy array of points.
 
 Parameters:
-- points: A numpy array of shape [N, 3] or [N, 4] containing the points. If the array has shape [N, 3], it should contain [x, y, z] coordinates. If it has shape [N, 4], it should contain [x, y, z, c] where c is the cluster label.
-- frame_id: The frame id of the pointcloud. Defaults to 'world'.
-- time: ROS2 time at which the pointcloud is created. If None, the current time is used.
+- points: A NumPy array of shape [N, 3] or [N, 4] containing the points. If the array has shape [N, 3], it should contain [x, y, z] coordinates. If it has shape [N, D] where D>3, the first three dimensions should still be [x, y, z].
+- frame_id: The frame id of the point cloud. Defaults to 'world'.
+- time: ROS2 time at which the point cloud is created. If None, the current time is used.
 
 Returns:
 - PointCloud2: The created PointCloud2 message.
@@ -149,11 +150,11 @@ Returns:
 Converts a PointCloud2 message to a numpy array.
 
 Parameters:
--pcl_msg: The PointCloud2 message to be converted.
-- flatten: If True, returns an array in the unstructured format, regardless of the pointcloud.
+- pcl_msg: The PointCloud2 message to be converted.
+- flatten: If True, returns an array in the unstructured format, regardless of the point cloud message.
 
 Returns:
-- np.ndarray: The converted numpy array.
+- np.ndarray: The converted NumPy array.
 
 
 # Overview 
