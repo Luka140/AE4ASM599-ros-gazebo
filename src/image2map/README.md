@@ -7,6 +7,22 @@ It contains four nodes:
 - Reconstructor
 - Locator
 
+## Usage  
+To launch the nodes use:
+```
+source opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch image2map image2map.launch.py
+```
+Launch the simulation using
+```
+export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:$HOME/ros2_ws/gazebo_files/
+ign gazebo worlds/tugbot_depot.sdf
+```
+The vehicle can be driven around using the arrow keys. Pressing "S" stops the vehicle. For this to work, the 'key publisher' in Gazebo needs to be enabled. 
+To see the published gridmaps and pointclouds can be seen in RViz. An RViz configuration file can be found in `ros2_ws/rviz_configs`.
+
+
 ## Nodes
 ### Coordinator
 File: `timer.py`
