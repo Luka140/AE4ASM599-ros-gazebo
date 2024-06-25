@@ -63,7 +63,7 @@ def generate_launch_description():
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
-        '/clock@rosgraph_msgs/msg/Clock@ignition.msgs.Clock', 
+        '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock', 
         '/lidar@sensor_msgs/msg/LaserScan@ignition.msgs.LaserScan',  # Needed to know sim_time
         ]
     )

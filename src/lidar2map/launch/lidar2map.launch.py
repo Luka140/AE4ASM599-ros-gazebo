@@ -13,7 +13,7 @@ def generate_launch_description():
 
     bridge = Node(package='ros_gz_bridge', 
                   executable='parameter_bridge', 
-                  arguments=['/clock@rosgraph_msgs/msg/Clock@ignition.msgs.Clock'])
+                  arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'])
 
     # Topics over which to interface
     lidar_topic     = '/lidar'      # This is the lidar broadcast topic which is an input to the lidar to pointcloud node
