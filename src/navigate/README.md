@@ -79,7 +79,10 @@ The NavPoseClient node allows external clients to send navigation goal requests 
 An overview of the communication of the navigation stack.
 ![navigate](https://github.com/Luka140/AE4ASM599-ros-gazebo/assets/79090591/4f507ed4-1a38-4590-ae5b-63e8fefd98d6)
 
+For the avoidance controller, extra communication is needed.
+![navigation_avoid](https://github.com/Luka140/AE4ASM599-ros-gazebo/assets/79090591/0f5fd2b0-761e-4566-8b8b-5e0475dfc6b2)
 ## Usage
+
 
 To use the `navigate` package, you can launch the nodes using the launch file. Make sure to configure the parameters according to your robot's specifications and navigation requirements.
 ```bash
