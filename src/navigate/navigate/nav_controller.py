@@ -179,6 +179,12 @@ class NavController(Node):
 
         # Get current angle.
         yaw = euler_from_quaternion(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w)[2]
+        yaw_ref = np.arctan2(position_error[1], position_error[0])
+        yaw_error = angle_wrapping(yaw_ref - yaw)
+
+        # Limit allowed anlge error
+        if abs(yaw_error) > np.pi/6:
+            position_error = np.array([0.0, 0.0])
 
         # Transform to body frame
         delta_body = np.array([[np.cos(yaw), np.sin(yaw)],[-np.sin(yaw), np.cos(yaw)]])@position_error.T

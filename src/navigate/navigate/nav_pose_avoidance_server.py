@@ -213,7 +213,7 @@ class NavPoseServer(Node):
             for point in points:
                 distance = np.linalg.norm([point[0], point[1]])
                 if distance < obstacle_threshold:
-                    grad = -gradient(np.array([point[0], point[1]]), epsilon=2)
+                    grad = -gradient(np.array([point[0], point[1]]), epsilon=2.0)
 
                     carrot_point += grad*0.25
 

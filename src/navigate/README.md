@@ -55,6 +55,9 @@ The `NavPoseServer` is an action server node that provides the functionality for
 - `yaw_tolerance`: Tolerance for orientation error (yaw), used to determine when the goal orientation is reached.
 - `timeout`: Maximum duration allowed for completing the navigation action.
 
+#### Avoidance
+A version of the navigation server wiht simple obstacle avoidance is also available, this version is identical to the normal NAvPoseServer but subscribes to the lidar pointcloud.
+
 ### NavPoseClient
 
 The NavPoseClient node allows external clients to send navigation goal requests to the nav_pose_server action server. It sends the desired goal pose to the server and monitors the navigation progress.
@@ -81,9 +84,7 @@ An overview of the communication of the navigation stack.
 To use the `navigate` package, you can launch the nodes using the launch file. Make sure to configure the parameters according to your robot's specifications and navigation requirements.
 ```bash
 ros2 launch navigate launch_nav.launch.py
+ros2 launch navigate launch_nav_avoidance.launch.py # For obstacle avoidance
+
 ```
 The goal pose can be send in RViz.
-
-## Compatibility
-
-This package is designed to work with differential drive robots and has been tested on ROS 2 Foxy and later versions.
