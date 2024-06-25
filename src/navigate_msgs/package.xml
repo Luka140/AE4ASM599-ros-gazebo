@@ -4,7 +4,7 @@
   <name>navigate_msgs</name>
   <version>0.0.0</version>
   <description>custom navigation messages</description>
-  <maintainer email="j.p.g.dubois@student.tudelft.nl">ros</maintainer>
+  <maintainer email="j.p.g.dubois@student.tudelft.nl">justin dubois</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

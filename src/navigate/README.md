@@ -91,3 +91,6 @@ ros2 launch navigate launch_nav_avoidance.launch.py # For obstacle avoidance
 
 ```
 The goal pose can be send in RViz.
+
+### Accreditaion
+This package is written by Justin Dubois

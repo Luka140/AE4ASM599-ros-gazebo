@@ -4,7 +4,7 @@
   <name>navigate</name>
   <version>0.0.0</version>
   <description>custom navigation nodes</description>
-  <maintainer email="j.p.g.dubois@student.tudelft.nl">ros</maintainer>
+  <maintainer email="j.p.g.dubois@student.tudelft.nl">justin dubois</maintainer>
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>

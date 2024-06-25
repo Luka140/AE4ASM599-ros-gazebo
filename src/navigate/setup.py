@@ -17,9 +17,9 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='ros',
-    maintainer_email='r37ja8kf@jpgdubois.anonaddy.com',
-    description='TODO: Package description',
+    maintainer='justin dubois',
+    maintainer_email='j.p.g.dubois@student.tudelft.nl',
+    description='custom navigation nodes',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
@@ -27,7 +27,6 @@ setup(
             'nav_pose_server = navigate.nav_pose_server:main',
             'nav_pose_client = navigate.nav_pose_client:main',
             'nav_controller = navigate.nav_controller:main',
-            'nav_controller_avoidance = navigate.nav_controller_avoidance:main',
             'nav_pose_avoidance_server = navigate.nav_pose_avoidance_server:main'
         ],
     },

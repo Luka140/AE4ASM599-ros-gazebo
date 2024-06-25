@@ -4,7 +4,7 @@
   <name>simulation</name>
   <version>0.0.0</version>
   <description>Package with gazebo setup and robot description for simulating a robot</description>
-  <maintainer email="j.p.g.dubois@student.tudelft.nl">Justin Dubois</maintainer>
+  <maintainer email="j.p.g.dubois@student.tudelft.nl">justin dubois</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

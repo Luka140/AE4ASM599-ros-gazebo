@@ -187,7 +187,7 @@ class NavPoseServer(Node):
 
 
     def get_avoidance_reference(self):
-        """Obstacle avoudance routine, claculates the best reference for the carrot taking into account the obstacles and the goal"""
+        """Obstacle avoudance routine, calculates the best reference for the carrot taking into account the obstacles and the goal"""
         # Get parameters
         carrot_distance = self.get_parameter('carrot_distance').value
         obstacle_threshold = self.get_parameter('obstacle_threshold').value

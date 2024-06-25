@@ -67,11 +67,10 @@ def generate_launch_description():
         '/lidar@sensor_msgs/msg/LaserScan@ignition.msgs.LaserScan',  # Needed to know sim_time
         ]
     )
-    'robot/base_link/gpu_lidar'
 
     static_tf_publisher = Node(package="tf2_ros",
                             executable='static_transform_publisher',
-                            arguments= ["0", "0", "0", "0", "0", "0", "laser_frame", 'robot/base_link/gpu_lidar'],
+                            arguments= ["0.421", "0", "0", "0", "0", "0", "laser_frame", 'robot/base_link/gpu_lidar'],
                             )
 
     # Spawn the differenctial drive node from the controller_manager package.

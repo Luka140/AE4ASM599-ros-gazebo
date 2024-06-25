@@ -70,8 +70,8 @@ class PointcloudToGridNode(Node):
         # Try to get the transform from the cloud frame to the world frame
         try:
             tf_trans = self.tf_buffer.lookup_transform(self.world_frame_id, msg.header.frame_id, rclpy.time.Time(seconds=0), timeout=rclpy.duration.Duration(seconds=3))
-        except (LookupException, ExtrapolationException):
-            self.get_logger().info(f"Could not lookup transform for time: {msg.header.stamp}")
+        except (LookupException, ExtrapolationException) as error:
+            self.get_logger().info(f"Could not lookup transform for time: {msg.header.stamp} \n {error}")
             return
         
         # Get the translation and rotation from the transform

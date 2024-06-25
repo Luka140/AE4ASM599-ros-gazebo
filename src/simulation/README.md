@@ -1,6 +1,8 @@
 ## Simulation Package
 This package provides a simulation environment containing the gazebo world and robot description. By bundeling this together with a convenient launch file the workflow for developing robotics systems is significantly simplified.
 
+
+
 ### Utilisation
 Launch the sim environment:
 ```bash
@@ -42,3 +44,6 @@ The following packages and tools are required (in adittion to ROS2 humble):
 * [**Gazebo Fortress (Igntion):**](https://gazebosim.org/docs/fortress/install) Is provided as a package and can be installed as `ros-humble-ros-gz`.
 * [**XACRO:**](http://wiki.ros.org/xacro) Is provided as a package and can be installed as `ros-humble-xacro`
 * [**Ros2 control**](https://control.ros.org/rolling/index.html) Is provided as a package and can be installed as `ros-humble-ign-ros2-control`
+
+### Accreditaion
+This package is primarily written by Justin Dubois
