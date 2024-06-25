@@ -14,7 +14,7 @@ def generate_launch_description():
                              '/camera_info@sensor_msgs/msg/CameraInfo@ignition.msgs.CameraInfo',
                              '/model/Test_car/pose@tf2_msgs/msg/TFMessage@ignition.msgs.Pose_V',
                              '/cmd_vel@geometry_msgs/msg/Twist@ignition.msgs.Twist',
-                             '/clock@rosgraph_msgs/msg/Clock@ignition.msgs.Clock'])
+                             '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'])
 
     reconstructor = Node(
         package=pkg,
