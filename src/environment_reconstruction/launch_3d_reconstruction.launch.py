@@ -13,7 +13,7 @@ def generate_launch_description():
                              '/model/Test_car/pose@tf2_msgs/msg/TFMessage@ignition.msgs.Pose_V',
                              '/keyboard/keypress@std_msgs/msg/Int32@ignition.msgs.Int32',
                              '/cmd_vel@geometry_msgs/msg/Twist@ignition.msgs.Twist',
-                             '/clock@rosgraph_msgs/msg/Clock@ignition.msgs.Clock',])
+                             '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',])
 
     reconstructor = Node(
         package="environment_reconstruction",
