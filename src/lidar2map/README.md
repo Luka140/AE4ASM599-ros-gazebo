@@ -12,6 +12,13 @@ source install/setup.bash
 ros2 launch lidar2map lidar2map.launch.py
 ```
 
+## Potential issues
+This package uses the [pointcloud_to_laserscan](https://github.com/ros-perception/pointcloud_to_laserscan/tree/59bf996fb3ee7db0026a5cd3ce0d2a39d2e602ea) package as a submodule. When cloning or pulling this repo, the submodule may not be loaded. If the `pointcloud_to_laserscan` directory is empty, use the following command to clone the subdirectory into it:
+```
+git submodule update --init --recursive
+```
+Then rebuild this package, source `install/setup.bash` and retry to launch the package. 
+
 ## Overview
 An overview of the nodes launched by this package is shown below:
 

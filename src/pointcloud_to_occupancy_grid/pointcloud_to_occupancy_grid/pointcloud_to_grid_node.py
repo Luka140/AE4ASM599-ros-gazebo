@@ -5,6 +5,7 @@ from sensor_msgs.msg import PointCloud2
 from tf2_ros import TransformListener, LookupException, ExtrapolationException
 from tf2_ros.buffer import Buffer
 from rclpy.qos import DurabilityPolicy, qos_profile_system_default, ReliabilityPolicy
+from rclpy.executors import MultiThreadedExecutor
 import numpy as np
 
 class PointcloudToGridNode(Node):
@@ -69,9 +70,17 @@ class PointcloudToGridNode(Node):
     def pointcloud_callback(self, msg: PointCloud2):
         # Try to get the transform from the cloud frame to the world frame
         try:
+<<<<<<< HEAD
             tf_trans = self.tf_buffer.lookup_transform(self.world_frame_id, msg.header.frame_id, rclpy.time.Time(seconds=0), timeout=rclpy.duration.Duration(seconds=3))
         except (LookupException, ExtrapolationException) as error:
             self.get_logger().info(f"Could not lookup transform for time: {msg.header.stamp} \n {error}")
+=======
+            tf_time = msg.header.stamp
+            # tf_trans = self.tf_buffer.lookup_transform(self.world_frame_id, msg.header.frame_id, rclpy.time.Time(seconds=0), timeout=rclpy.duration.Duration(seconds=3))
+            tf_trans = self.tf_buffer.lookup_transform(self.world_frame_id, msg.header.frame_id, tf_time, timeout=rclpy.duration.Duration(seconds=5))
+        except (LookupException, ExtrapolationException) as error:
+            self.get_logger().info(f"Could not lookup transform for time: {tf_time} \n {error}")
+>>>>>>> 0127beee20e4f4ff9ca6c5719f208bed7bf6b035
             return
         
         # Get the translation and rotation from the transform
@@ -229,9 +238,12 @@ def pcl2array(pcl_msg: PointCloud2, flatten=False) -> np.ndarray:
 
 def main(args=None):
     rclpy.init(args=args)
+    executor = MultiThreadedExecutor()
     node = PointcloudToGridNode()
     try:
-        rclpy.spin(node)
+        executor.add_node(node)
+        executor.spin()
+        # rclpy.spin(node)
     except KeyboardInterrupt:
         pass
     node.destroy_node()
