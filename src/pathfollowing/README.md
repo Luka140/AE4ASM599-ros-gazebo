@@ -1,4 +1,6 @@
 # Pathfollowing
+Package written by Luka Distelbrink
+
 This package was the first package I wrote after doing the Gazebo tutorials. It was just an exercise to practice using ROS2 and Gazebo. 
 
 This contains a node that performs simple waypoint following missions while avoiding obstacles. The algorithm is not robust and the waypoints may not be accurate to the simulated world due to error buildup in odometry.
