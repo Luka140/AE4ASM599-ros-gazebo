@@ -1,3 +1,5 @@
+# lidar2map
+Package written by Luka Distelbrink.
 
 This package only contains a launch file that launches nodes from:
 - **pointcloud_to_laserscan**
