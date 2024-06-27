@@ -1,3 +1,6 @@
+# pointcloud_to_occupancy_grid
+Package written by Luka Distelbrink.
+
 This ROS2 package provides a node for converting PointCloud2 messages into an occupancy grid. The node subscribes to a PointCloud2 topic, transforms the point cloud to the world frame, and populates an occupancy grid which it publishes. The occupancy grid size is dynamic. It starts with some initial size, but if an obstacle is detected outside the map, it will expand in that direction. 
 
 ## Features
