@@ -1,4 +1,6 @@
 # image2map
+Package written by Luka Distelbrink
+
 This package was written based on nodes from the **environment_reconstruction** package. The package is a pipeline that takes images from a stereo camera setup and uses it to produce and update a grid map. A flow chart overview of the package is shown at the bottom of this page. 
 
 It contains four nodes:
@@ -20,7 +22,7 @@ export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:$HOME/ros2_ws/gazebo_f
 ign gazebo worlds/tugbot_depot.sdf
 ```
 The vehicle can be driven around using the arrow keys. Pressing "S" stops the vehicle. For this to work, the 'key publisher' in Gazebo needs to be enabled. 
-To see the published gridmaps and pointclouds can be seen in RViz. An RViz configuration file can be found in `ros2_ws/rviz_configs`.
+To see the published grid maps and point clouds can be seen in RViz. An RViz configuration file can be found in `ros2_ws/rviz_configs`.
 
 
 ## Nodes
