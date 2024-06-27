@@ -1,4 +1,6 @@
 # Environment Reconstruction
+Package written by Luka Distelbrink.
+
 This package contains various nodes to reconstruct a point cloud from a stereo image setup and manipulate it. 
 It is not a streamlined product but rather the result of experimentation for the sake of learning. The **image2map** package
 shows a more direct pipeline, based on some of the nodes in this package. 
